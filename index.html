@@ -307,9 +307,8 @@ textarea.ps-box{
       <div class="perm-list">
         <div class="perm"><span class="dot"></span>Read & write all users</div>
         <div class="perm"><span class="dot"></span>Read & write all groups</div>
-        <div class="perm"><span class="dot"></span>Read directory data & domains</div>
+        <div class="perm"><span class="dot"></span>Read & write directory data</div>
         <div class="perm"><span class="dot"></span>Read organization & license info</div>
-        <div class="perm"><span class="dot"></span>Read & write SharePoint sites (OneDrive handoff)</div>
       </div>
       <button class="primary" id="signInBtn" style="margin-top:8px;">Sign in with Microsoft</button>
       <p id="gateError" class="error-panel hidden" style="max-width:480px;"></p>
@@ -458,7 +457,6 @@ textarea.ps-box{
             <div class="check-opt"><input type="checkbox" id="actDisable" checked /><label for="actDisable" style="font-weight:500;">Disable account + revoke sign-in sessions</label></div>
             <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships &amp; licenses</label></div>
             <div class="check-opt"><input type="checkbox" id="actReset" checked /><label for="actReset" style="font-weight:500;">Reset password (random)</label></div>
-            <div class="check-opt"><input type="checkbox" id="actOnedrive" checked /><label for="actOnedrive" style="font-weight:500;">Grant manager read access to OneDrive</label></div>
             <div class="check-opt"><input type="checkbox" id="actShared" checked /><label for="actShared" style="font-weight:500;">Convert mailbox to shared <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actHide" checked /><label for="actHide" style="font-weight:500;">Hide from Global Address List <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actForward" checked /><label for="actForward" style="font-weight:500;">Forward mail to manager <span class="hint">(PowerShell)</span></label></div>
@@ -497,8 +495,7 @@ const GRAPH_SCOPES = [
   "User.ReadWrite.All",
   "Group.ReadWrite.All",
   "Directory.ReadWrite.All",
-  "Organization.Read.All",
-  "Sites.ReadWrite.All"
+  "Organization.Read.All"
 ];
 
 const msalInstance = new msal.PublicClientApplication({
@@ -884,7 +881,6 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
   const doDisable = document.getElementById("actDisable").checked;
   const doGroups = document.getElementById("actGroups").checked;
   const doReset = document.getElementById("actReset").checked;
-  const doOnedrive = document.getElementById("actOnedrive").checked;
   const doShared = document.getElementById("actShared").checked;
   const doHide = document.getElementById("actHide").checked;
   const doForward = document.getElementById("actForward").checked;
@@ -920,18 +916,6 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
         s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
         s.querySelector("span:last-child").textContent += ` — ${newPw}`;
       } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
-    }
-
-    if (doOnedrive) {
-      const s = logStep("offboardStatus", "Granting manager access to OneDrive…", "pending");
-      if (!offSelectedManager) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — no manager selected"; }
-      else {
-        try {
-          const drive = await graph(`/users/${offUser.id}/drive`);
-          await graph(`/drives/${drive.id}/items/root/invite`, { method: "POST", body: JSON.stringify({ requireSignIn: true, sendInvitation: false, roles: ["read"], recipients: [{ email: offSelectedManager.mail }] }) });
-          s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
-        } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
-      }
     }
 
     if (doShared || doHide || doForward) {
