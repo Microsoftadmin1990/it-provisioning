@@ -5,190 +5,292 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IT Provisioning — Onboard / Offboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="./msal-browser.min.js"></script>
 <style>
-  :root{
-    --bg:#F5F6F8;
-    --panel:#FFFFFF;
-    --ink:#1B1F27;
-    --ink-soft:#5B6270;
-    --line:#E2E4EA;
-    --accent:#3454D1;
-    --accent-ink:#FFFFFF;
-    --accent-soft:#EDF0FC;
-    --danger:#C4433A;
-    --danger-soft:#FBEAE8;
-    --ok:#0F9B72;
-    --ok-soft:#E8F7F1;
-    --radius:6px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'Inter',system-ui,-apple-system,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    -webkit-font-smoothing:antialiased;
-  }
-  .shell{ display:flex; min-height:100vh; }
+:root{
+  --bg:#0F1117;
+  --bg2:#161921;
+  --panel:#1C1F2B;
+  --panel-hover:#222638;
+  --ink:#E8EAF0;
+  --ink-soft:#8B92A5;
+  --line:#2A2E3E;
+  --accent:#6C7EFF;
+  --accent-glow:rgba(108,126,255,.15);
+  --accent-bright:#8B9AFF;
+  --danger:#F25F5C;
+  --danger-soft:rgba(242,95,92,.12);
+  --ok:#3DD68C;
+  --ok-soft:rgba(61,214,140,.12);
+  --warn:#FFB545;
+  --warn-soft:rgba(255,181,69,.12);
+  --radius:8px;
+  --radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+::selection{background:var(--accent);color:#fff;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
 
-  /* Left rail */
-  .rail{
-    width:230px;
-    flex-shrink:0;
-    background:var(--panel);
-    border-right:1px solid var(--line);
-    padding:24px 16px;
-    display:flex;
-    flex-direction:column;
-    gap:24px;
-  }
-  .brand{ padding:0 8px; }
-  .brand .name{ font-weight:700; font-size:15px; letter-spacing:-0.01em; }
-  .brand .sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
-  .nav{ display:flex; flex-direction:column; gap:2px; }
-  .nav button{
-    all:unset; cursor:pointer;
-    padding:10px 12px; border-radius:var(--radius);
-    font-size:14px; font-weight:500; color:var(--ink-soft);
-  }
-  .nav button.active{ background:var(--accent-soft); color:var(--accent); }
-  .nav button:hover:not(.active){ background:#F0F1F4; color:var(--ink); }
+.shell{display:flex;min-height:100vh;}
 
-  .session{ margin-top:auto; padding:12px 8px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); }
-  .session .who{ color:var(--ink); font-weight:500; font-size:13px; margin-bottom:8px; word-break:break-all; }
-  .session button{
-    all:unset; cursor:pointer; font-size:12px; color:var(--accent); font-weight:500;
-  }
+/* ── RAIL ── */
+.rail{
+  width:240px;flex-shrink:0;
+  background:var(--bg2);
+  border-right:1px solid var(--line);
+  padding:28px 16px 20px;
+  display:flex;flex-direction:column;gap:28px;
+  position:sticky;top:0;height:100vh;
+}
+.brand{padding:0 10px;}
+.brand .logo{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,#6C7EFF 0%,#A78BFA 100%);
+  display:grid;place-items:center;
+  font-weight:800;font-size:16px;color:#fff;
+  margin-bottom:14px;
+}
+.brand .name{font-weight:700;font-size:15px;letter-spacing:-.02em;}
+.brand .sub{font-size:12px;color:var(--ink-soft);margin-top:3px;letter-spacing:.01em;}
 
-  /* Main */
-  .main{ flex:1; padding:32px 40px; max-width:920px; }
-  h1{ font-size:20px; margin:0 0 4px; letter-spacing:-0.01em; }
-  .lede{ color:var(--ink-soft); font-size:13.5px; margin:0 0 28px; max-width:60ch; line-height:1.5; }
+.nav{display:flex;flex-direction:column;gap:3px;}
+.nav button{
+  all:unset;cursor:pointer;
+  padding:10px 12px;border-radius:var(--radius);
+  font-size:13.5px;font-weight:500;color:var(--ink-soft);
+  transition:all .15s;display:flex;align-items:center;gap:10px;
+}
+.nav button svg{width:18px;height:18px;opacity:.5;flex-shrink:0;}
+.nav button.active{background:var(--accent-glow);color:var(--accent-bright);}
+.nav button.active svg{opacity:1;stroke:var(--accent-bright);}
+.nav button:hover:not(.active){background:var(--panel-hover);color:var(--ink);}
 
-  .gate{ display:flex; flex-direction:column; align-items:flex-start; gap:16px; padding:60px 0; }
-  .gate p{ color:var(--ink-soft); max-width:46ch; line-height:1.6; font-size:14px; }
+.session{
+  margin-top:auto;padding:14px 12px;
+  border-top:1px solid var(--line);font-size:12px;color:var(--ink-soft);
+}
+.session .who{
+  color:var(--ink);font-weight:500;font-size:12.5px;margin-bottom:10px;
+  word-break:break-all;line-height:1.4;
+}
+.session button{
+  all:unset;cursor:pointer;font-size:12px;color:var(--accent);font-weight:600;
+  padding:5px 10px;border-radius:var(--radius);border:1px solid var(--line);
+  transition:all .15s;
+}
+.session button:hover{background:var(--accent-glow);border-color:var(--accent);}
 
-  button.primary{
-    all:unset; cursor:pointer;
-    background:var(--accent); color:var(--accent-ink);
-    padding:10px 18px; border-radius:var(--radius);
-    font-size:14px; font-weight:600;
-  }
-  button.primary:hover{ filter:brightness(1.08); }
-  button.primary:disabled{ opacity:.5; cursor:not-allowed; }
+/* ── MAIN ── */
+.main{flex:1;padding:36px 44px;max-width:960px;}
+h1{font-size:22px;font-weight:700;letter-spacing:-.02em;}
+.lede{color:var(--ink-soft);font-size:13.5px;margin:6px 0 30px;max-width:62ch;line-height:1.6;}
 
-  button.secondary{
-    all:unset; cursor:pointer;
-    background:var(--panel); color:var(--ink);
-    border:1px solid var(--line);
-    padding:9px 16px; border-radius:var(--radius);
-    font-size:13.5px; font-weight:500;
-  }
-  button.secondary:hover{ background:#F0F1F4; }
+/* ── GATE ── */
+.gate{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:70vh;text-align:center;gap:20px;
+}
+.gate .logo-big{
+  width:64px;height:64px;border-radius:16px;
+  background:linear-gradient(135deg,#6C7EFF 0%,#A78BFA 100%);
+  display:grid;place-items:center;
+  font-weight:800;font-size:26px;color:#fff;
+  box-shadow:0 0 40px rgba(108,126,255,.25);
+  margin-bottom:8px;
+}
+.gate h1{font-size:26px;}
+.gate p{color:var(--ink-soft);max-width:44ch;line-height:1.7;font-size:14px;}
+.gate .perm-list{
+  text-align:left;display:inline-flex;flex-direction:column;gap:6px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:18px 22px;font-size:13px;margin-top:4px;
+}
+.gate .perm-list .perm{display:flex;gap:8px;align-items:center;color:var(--ink-soft);}
+.gate .perm-list .perm .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;
+}
 
-  button.danger{
-    all:unset; cursor:pointer;
-    background:var(--danger); color:#fff;
-    padding:10px 18px; border-radius:var(--radius);
-    font-size:14px; font-weight:600;
-  }
-  button.danger:hover{ filter:brightness(1.08); }
-  button.danger:disabled{ opacity:.5; cursor:not-allowed; }
+button.primary{
+  all:unset;cursor:pointer;
+  background:linear-gradient(135deg,#6C7EFF 0%,#8B9AFF 100%);color:#fff;
+  padding:11px 22px;border-radius:var(--radius);
+  font-size:14px;font-weight:600;
+  box-shadow:0 2px 12px rgba(108,126,255,.3);
+  transition:all .15s;
+}
+button.primary:hover{filter:brightness(1.1);box-shadow:0 4px 20px rgba(108,126,255,.4);}
+button.primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
 
-  .card{
-    background:var(--panel); border:1px solid var(--line); border-radius:8px;
-    padding:24px; margin-bottom:20px;
-  }
-  .card h2{ font-size:14px; margin:0 0 16px; letter-spacing:-0.01em; }
-  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; }
-  .field{ display:flex; flex-direction:column; gap:6px; }
-  .field.full{ grid-column:1 / -1; }
-  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); }
-  label .hint{ font-weight:400; color:#9AA0AC; margin-left:4px; }
-  input[type=text], input[type=tel], input[type=email], select{
-    font-family:inherit; font-size:14px; padding:9px 10px;
-    border:1px solid var(--line); border-radius:var(--radius);
-    background:#fff; color:var(--ink);
-  }
-  input:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
-  .mono{ font-family:'IBM Plex Mono', monospace; font-size:13px; }
+button.secondary{
+  all:unset;cursor:pointer;
+  background:var(--panel);color:var(--ink);
+  border:1px solid var(--line);
+  padding:9px 16px;border-radius:var(--radius);
+  font-size:13px;font-weight:500;transition:all .15s;
+}
+button.secondary:hover{background:var(--panel-hover);border-color:var(--ink-soft);}
 
-  .radio-row, .check-row{ display:flex; gap:18px; flex-wrap:wrap; }
-  .radio-opt, .check-opt{ display:flex; align-items:center; gap:7px; font-size:13.5px; }
+button.danger{
+  all:unset;cursor:pointer;
+  background:var(--danger);color:#fff;
+  padding:11px 22px;border-radius:var(--radius);
+  font-size:14px;font-weight:600;
+  box-shadow:0 2px 12px rgba(242,95,92,.25);
+  transition:all .15s;
+}
+button.danger:hover{filter:brightness(1.1);}
+button.danger:disabled{opacity:.4;cursor:not-allowed;}
 
-  .pw-row{ display:flex; gap:8px; align-items:center; }
-  .pw-row input{ flex:1; }
+/* ── CARDS ── */
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:24px;margin-bottom:20px;
+  transition:border-color .2s;
+}
+.card:hover{border-color:#3A3F52;}
+.card h2{
+  font-size:13px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--ink-soft);margin-bottom:18px;
+}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.full{grid-column:1/-1;}
+label{font-size:12px;font-weight:600;color:var(--ink-soft);letter-spacing:.02em;}
+label .hint{font-weight:400;color:#6B7180;margin-left:4px;}
+input[type=text],input[type=tel],input[type=email],select{
+  font-family:inherit;font-size:14px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--bg);color:var(--ink);transition:all .15s;
+}
+input:focus,select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-glow);
+}
+input::placeholder{color:#4A5068;}
+select{cursor:pointer;}
+select option{background:var(--panel);color:var(--ink);}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:13px;}
 
-  .manager-wrap{ position:relative; }
-  .suggest{
-    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:10;
-    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
-    box-shadow:0 6px 18px rgba(20,24,34,.09); max-height:220px; overflow-y:auto;
-  }
-  .suggest-item{ padding:8px 12px; cursor:pointer; font-size:13.5px; }
-  .suggest-item:hover{ background:var(--accent-soft); }
-  .suggest-item .sub{ color:var(--ink-soft); font-size:12px; }
-  .picked-chip{
-    display:inline-flex; align-items:center; gap:8px;
-    background:var(--accent-soft); color:var(--accent);
-    padding:6px 10px; border-radius:var(--radius); font-size:13px; font-weight:500;
-  }
-  .picked-chip button{ all:unset; cursor:pointer; font-weight:700; }
+.radio-row,.check-row{display:flex;gap:18px;flex-wrap:wrap;}
+.radio-opt,.check-opt{display:flex;align-items:center;gap:7px;font-size:13.5px;}
+input[type=checkbox],input[type=radio]{
+  accent-color:var(--accent);width:16px;height:16px;cursor:pointer;
+}
 
-  .actions-bar{ display:flex; gap:10px; margin-top:22px; align-items:center; }
+.pw-row{display:flex;gap:8px;align-items:center;}
+.pw-row input{flex:1;}
 
-  .status-log{ margin-top:18px; display:flex; flex-direction:column; gap:6px; }
-  .status-line{ font-size:13px; display:flex; gap:8px; align-items:flex-start; }
-  .status-line .icon{ width:16px; flex-shrink:0; }
-  .status-line.ok{ color:var(--ok); }
-  .status-line.err{ color:var(--danger); }
-  .status-line.pending{ color:var(--ink-soft); }
+/* ── TYPEAHEAD ── */
+.manager-wrap{position:relative;}
+.suggest{
+  position:absolute;top:calc(100%+4px);left:0;right:0;z-index:10;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 12px 32px rgba(0,0,0,.4);max-height:240px;overflow-y:auto;
+}
+.suggest-item{padding:10px 14px;cursor:pointer;font-size:13.5px;transition:background .1s;}
+.suggest-item:hover{background:var(--accent-glow);}
+.suggest-item .sub{color:var(--ink-soft);font-size:12px;margin-top:2px;}
+.picked-chip{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--accent-glow);color:var(--accent-bright);
+  border:1px solid rgba(108,126,255,.25);
+  padding:7px 12px;border-radius:var(--radius);font-size:13px;font-weight:500;
+}
+.picked-chip button{all:unset;cursor:pointer;font-weight:700;font-size:14px;}
 
-  .result-panel{
-    border:1px solid var(--ok); background:var(--ok-soft); border-radius:8px;
-    padding:18px 20px; margin-top:16px; font-size:13.5px; line-height:1.7;
-  }
-  .result-panel .k{ color:var(--ink-soft); display:inline-block; width:120px; }
+.actions-bar{display:flex;gap:12px;margin-top:24px;align-items:center;}
 
-  .error-panel{
-    border:1px solid var(--danger); background:var(--danger-soft); border-radius:8px;
-    padding:12px 16px; margin-top:14px; font-size:13px; color:var(--danger);
-  }
+/* ── STATUS LOG ── */
+.status-log{margin-top:20px;display:flex;flex-direction:column;gap:8px;}
+.status-line{
+  font-size:13px;display:flex;gap:10px;align-items:flex-start;
+  padding:8px 12px;border-radius:var(--radius);
+}
+.status-line .icon{width:16px;flex-shrink:0;font-weight:700;}
+.status-line.ok{background:var(--ok-soft);color:var(--ok);}
+.status-line.err{background:var(--danger-soft);color:var(--danger);}
+.status-line.pending{background:var(--warn-soft);color:var(--warn);}
 
-  textarea.ps-box{
-    width:100%; min-height:130px; font-family:'IBM Plex Mono', monospace;
-    font-size:12.5px; background:#12141A; color:#D9DEE8; border:none; border-radius:var(--radius);
-    padding:14px; line-height:1.6; resize:vertical;
-  }
-  .ps-note{ font-size:12.5px; color:var(--ink-soft); margin:10px 0 8px; line-height:1.6; }
+.result-panel{
+  border:1px solid rgba(61,214,140,.3);
+  background:var(--ok-soft);border-radius:var(--radius-lg);
+  padding:20px 24px;margin-top:18px;font-size:13.5px;line-height:1.8;
+}
+.result-panel .k{color:var(--ink-soft);display:inline-block;width:130px;font-size:12px;font-weight:600;}
 
-  .selected-user{
-    display:flex; justify-content:space-between; align-items:center;
-    padding:12px 14px; background:#F7F8FA; border:1px solid var(--line); border-radius:var(--radius);
-    margin-bottom:16px;
-  }
-  .selected-user .name{ font-weight:600; font-size:14px; }
-  .selected-user .meta{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
-  .badge{ font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; }
-  .badge.enabled{ background:var(--ok-soft); color:var(--ok); }
-  .badge.disabled{ background:var(--danger-soft); color:var(--danger); }
+.error-panel{
+  border:1px solid rgba(242,95,92,.3);background:var(--danger-soft);
+  border-radius:var(--radius);
+  padding:12px 16px;margin-top:14px;font-size:13px;color:var(--danger);
+}
 
-  .hidden{ display:none !important; }
+textarea.ps-box{
+  width:100%;min-height:140px;font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;background:var(--bg);color:var(--ink);
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;line-height:1.7;resize:vertical;
+}
+.ps-note{font-size:12.5px;color:var(--ink-soft);margin:10px 0 8px;line-height:1.6;}
+
+/* ── OFFBOARD SELECTED USER ── */
+.selected-user{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;background:var(--bg);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:16px;
+}
+.selected-user .name{font-weight:600;font-size:14px;}
+.selected-user .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:.02em;}
+.badge.enabled{background:var(--ok-soft);color:var(--ok);}
+.badge.disabled{background:var(--danger-soft);color:var(--danger);}
+
+.hidden{display:none !important;}
+
+/* ── UPN ROW ── */
+.upn-row{display:flex;gap:4px;align-items:center;}
+.upn-row input{flex:2;}
+.upn-row .at{color:var(--ink-soft);font-weight:700;font-size:15px;padding:0 2px;}
+.upn-row select{flex:1.5;}
+
+/* ── PERMISSION CHECKLIST ── */
+.perm-check{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:20px 24px;margin-top:16px;text-align:left;width:100%;max-width:480px;
+}
+.perm-check h3{font-size:13px;font-weight:700;margin-bottom:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+.perm-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13.5px;}
+.perm-row .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.perm-row .status-dot.g{background:var(--ok);}
+.perm-row .status-dot.r{background:var(--danger);}
+.perm-row .status-dot.y{background:var(--warn);}
 </style>
 </head>
 <body>
-
 <div class="shell">
   <div class="rail">
     <div class="brand">
+      <div class="logo">IT</div>
       <div class="name">IT Provisioning</div>
       <div class="sub">Onboarding / Offboarding</div>
     </div>
     <div class="nav">
-      <button id="navOnboard" class="active">Onboard user</button>
-      <button id="navOffboard">Offboard user</button>
+      <button id="navOnboard" class="active">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Onboard user
+      </button>
+      <button id="navOffboard">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+        Offboard user
+      </button>
     </div>
     <div class="session hidden" id="sessionBox">
       <div class="who" id="whoAmI"></div>
@@ -197,70 +299,62 @@
   </div>
 
   <div class="main">
-
     <!-- SIGN-IN GATE -->
     <div id="gate" class="gate">
+      <div class="logo-big">IT</div>
       <h1>IT Provisioning</h1>
-      <p>Sign in with an account that has Microsoft Graph admin rights (User, Group, and Directory administrator) to onboard and offboard employees.</p>
-      <button class="primary" id="signInBtn">Sign in with Microsoft</button>
-      <p id="gateError" class="error-panel hidden"></p>
+      <p>Sign in with a Microsoft admin account to create and offboard employees. The following permissions will be requested:</p>
+      <div class="perm-list">
+        <div class="perm"><span class="dot"></span>Read & write all users</div>
+        <div class="perm"><span class="dot"></span>Read & write all groups</div>
+        <div class="perm"><span class="dot"></span>Read directory data & domains</div>
+        <div class="perm"><span class="dot"></span>Read organization & license info</div>
+        <div class="perm"><span class="dot"></span>Read & write SharePoint sites (OneDrive handoff)</div>
+      </div>
+      <button class="primary" id="signInBtn" style="margin-top:8px;">Sign in with Microsoft</button>
+      <p id="gateError" class="error-panel hidden" style="max-width:480px;"></p>
     </div>
 
     <!-- APP CONTENT -->
     <div id="app" class="hidden">
 
-      <!-- ONBOARD VIEW -->
+      <!-- ONBOARD -->
       <div id="viewOnboard">
         <h1>Onboard user</h1>
-        <p class="lede">Creates the account in Entra ID and applies group-based access. Fields with a suggestion list are pulled from your existing directory.</p>
+        <p class="lede">Create the account, assign licenses and group-based app access. Departments, designations, and managers are suggested from your directory — you can also type a custom value.</p>
 
         <div class="card">
           <h2>Identity</h2>
           <div class="grid">
-            <div class="field">
-              <label>First name</label>
-              <input type="text" id="fFirst" />
-            </div>
-            <div class="field">
-              <label>Last name</label>
-              <input type="text" id="fLast" />
-            </div>
-            <div class="field full">
-              <label>Display name <span class="hint">auto-filled, editable</span></label>
-              <input type="text" id="fDisplay" />
-            </div>
+            <div class="field"><label>First name</label><input type="text" id="fFirst" placeholder="e.g. Priya" /></div>
+            <div class="field"><label>Last name</label><input type="text" id="fLast" placeholder="e.g. Sharma" /></div>
+            <div class="field full"><label>Display name <span class="hint">auto-filled, editable</span></label><input type="text" id="fDisplay" /></div>
             <div class="field full">
               <label>Email address (UPN) <span class="hint">auto-suggested, editable</span></label>
-              <div class="pw-row">
-                <input type="text" id="fEmailLocal" placeholder="firstname.lastname" style="flex:1;" />
-                <span style="color:var(--ink-soft); font-weight:600;">@</span>
-                <select id="fEmailDomain" style="flex:1;"></select>
+              <div class="upn-row">
+                <input type="text" id="fEmailLocal" placeholder="firstname.lastname" />
+                <span class="at">@</span>
+                <select id="fEmailDomain"></select>
               </div>
             </div>
           </div>
         </div>
 
         <div class="card">
-          <h2>Role & organization</h2>
+          <h2>Role &amp; Organization</h2>
           <div class="grid">
             <div class="field">
-              <label>Department</label>
-              <input type="text" id="fDept" list="deptList" placeholder="Type or choose an existing one…" />
+              <label>Department <span class="hint">type or pick</span></label>
+              <input type="text" id="fDept" list="deptList" placeholder="Type or choose…" />
               <datalist id="deptList"></datalist>
             </div>
             <div class="field">
-              <label>Designation / job title</label>
-              <input type="text" id="fTitle" list="titleList" placeholder="Type or choose an existing one…" />
+              <label>Designation / Job title <span class="hint">type or pick</span></label>
+              <input type="text" id="fTitle" list="titleList" placeholder="Type or choose…" />
               <datalist id="titleList"></datalist>
             </div>
-            <div class="field">
-              <label>Employee ID</label>
-              <input type="text" id="fEmpId" />
-            </div>
-            <div class="field">
-              <label>Phone number</label>
-              <input type="tel" id="fPhone" />
-            </div>
+            <div class="field"><label>Employee ID</label><input type="text" id="fEmpId" placeholder="e.g. EMP-0042" /></div>
+            <div class="field"><label>Phone number</label><input type="tel" id="fPhone" placeholder="+91 98765 43210" /></div>
             <div class="field full manager-wrap">
               <label>Manager</label>
               <input type="text" id="fManagerSearch" placeholder="Search by name or email…" autocomplete="off" />
@@ -280,7 +374,7 @@
             <div class="field full">
               <label>Temporary password</label>
               <div class="pw-row">
-                <input type="text" id="fPassword" class="mono" readonly />
+                <input type="text" id="fPassword" class="mono" readonly placeholder="Click Generate →" />
                 <button class="secondary" id="genPwBtn" type="button">Generate</button>
                 <button class="secondary" id="copyPwBtn" type="button">Copy</button>
               </div>
@@ -288,7 +382,7 @@
             <div class="field full">
               <div class="check-opt">
                 <input type="checkbox" id="fForceChange" checked />
-                <label for="fForceChange" style="font-weight:400; color:var(--ink);">Require password change at next sign-in</label>
+                <label for="fForceChange" style="font-weight:400;color:var(--ink);">Require password change at next sign-in</label>
               </div>
             </div>
           </div>
@@ -296,27 +390,27 @@
 
         <div class="card">
           <h2>Licenses</h2>
-          <div id="licenseList" style="display:flex; flex-direction:column; gap:8px; font-size:13.5px;">
+          <div id="licenseList" style="display:flex;flex-direction:column;gap:8px;font-size:13.5px;">
             <div style="color:var(--ink-soft);">Loading available licenses…</div>
           </div>
         </div>
 
         <div class="card">
-          <h2>App access</h2>
+          <h2>App Access</h2>
           <div class="grid">
             <div class="field full">
               <label>Claude</label>
               <div class="radio-row">
                 <div class="radio-opt"><input type="radio" name="claudeTier" id="claudeNone" value="none" checked /><label for="claudeNone" style="font-weight:400;">None</label></div>
-                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudeStd" value="standard" /><label for="claudeStd" style="font-weight:400;">Claude Standard</label></div>
-                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudePrem" value="premium" /><label for="claudePrem" style="font-weight:400;">Claude Premium</label></div>
+                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudeStd" value="standard" /><label for="claudeStd" style="font-weight:400;">Standard</label></div>
+                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudePrem" value="premium" /><label for="claudePrem" style="font-weight:400;">Premium</label></div>
               </div>
             </div>
             <div class="field full">
               <label>Zoho</label>
               <div class="check-opt">
                 <input type="checkbox" id="fZoho" />
-                <label for="fZoho" style="font-weight:400; color:var(--ink);">Grant Zoho access</label>
+                <label for="fZoho" style="font-weight:400;color:var(--ink);">Grant Zoho access</label>
               </div>
             </div>
           </div>
@@ -324,31 +418,27 @@
 
         <div class="actions-bar">
           <button class="primary" id="createUserBtn">Create user</button>
+          <button class="secondary" id="resetFormBtn" type="button">Reset form</button>
         </div>
-
         <div id="onboardStatus" class="status-log"></div>
         <div id="onboardResult"></div>
         <div id="onboardError" class="error-panel hidden"></div>
       </div>
 
-      <!-- OFFBOARD VIEW -->
+      <!-- OFFBOARD -->
       <div id="viewOffboard" class="hidden">
         <h1>Offboard user</h1>
-        <p class="lede">Search for the departing employee, confirm the actions, and run them. Mailbox-level actions (shared mailbox conversion, hiding from the address list, and forwarding) require Exchange Online PowerShell — this tool generates that script for you.</p>
+        <p class="lede">Search for the departing employee, select the actions, and run them. Exchange-level actions generate a ready-to-paste PowerShell script.</p>
 
         <div class="card">
-          <h2>Find user</h2>
+          <h2>Find User</h2>
           <div class="manager-wrap">
             <input type="text" id="offSearch" placeholder="Search by name or email…" autocomplete="off" />
             <div id="offSuggest" class="suggest hidden"></div>
           </div>
-
           <div id="offSelected" class="hidden" style="margin-top:16px;">
             <div class="selected-user">
-              <div>
-                <div class="name" id="offName"></div>
-                <div class="meta" id="offMeta"></div>
-              </div>
+              <div><div class="name" id="offName"></div><div class="meta" id="offMeta"></div></div>
               <span class="badge" id="offBadge"></span>
             </div>
           </div>
@@ -357,53 +447,45 @@
         <div id="offActionsCard" class="card hidden">
           <h2>Actions</h2>
           <div class="grid">
-            <div class="field full">
-              <label>Manager to hand off to <span class="hint">used for OneDrive access + mail forwarding</span></label>
+            <div class="field full manager-wrap">
+              <label>Manager to hand off to <span class="hint">OneDrive access + mail forwarding</span></label>
               <input type="text" id="offManagerSearch" placeholder="Search by name or email…" autocomplete="off" />
               <div id="offManagerSuggest" class="suggest hidden"></div>
               <div id="offManagerPicked" class="hidden" style="margin-top:8px;"></div>
             </div>
           </div>
-
-          <div style="margin-top:18px; display:flex; flex-direction:column; gap:10px;">
+          <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px;">
             <div class="check-opt"><input type="checkbox" id="actDisable" checked /><label for="actDisable" style="font-weight:500;">Disable account + revoke sign-in sessions</label></div>
-            <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships & licenses</label></div>
+            <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships &amp; licenses</label></div>
             <div class="check-opt"><input type="checkbox" id="actReset" checked /><label for="actReset" style="font-weight:500;">Reset password (random)</label></div>
             <div class="check-opt"><input type="checkbox" id="actOnedrive" checked /><label for="actOnedrive" style="font-weight:500;">Grant manager read access to OneDrive</label></div>
             <div class="check-opt"><input type="checkbox" id="actShared" checked /><label for="actShared" style="font-weight:500;">Convert mailbox to shared <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actHide" checked /><label for="actHide" style="font-weight:500;">Hide from Global Address List <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actForward" checked /><label for="actForward" style="font-weight:500;">Forward mail to manager <span class="hint">(PowerShell)</span></label></div>
           </div>
-
           <div class="actions-bar">
             <button class="danger" id="runOffboardBtn">Run offboarding</button>
           </div>
-
           <div id="offboardStatus" class="status-log"></div>
           <div id="offboardError" class="error-panel hidden"></div>
-
           <div id="psSection" class="hidden" style="margin-top:20px;">
-            <h2 style="font-size:14px; margin-bottom:6px;">Exchange Online PowerShell</h2>
-            <p class="ps-note">Run these in an Exchange Online PowerShell session (<code>Connect-ExchangeOnline</code> first) — Graph doesn't expose these mailbox settings.</p>
+            <h2 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:10px;">Exchange Online PowerShell</h2>
+            <p class="ps-note">Run in an Exchange Online PowerShell session (<code style="color:var(--accent);">Connect-ExchangeOnline</code> first).</p>
             <textarea id="psBox" class="ps-box" readonly></textarea>
             <div style="margin-top:10px;"><button class="secondary" id="copyPsBtn" type="button">Copy script</button></div>
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
 <script>
-/* ============================================================
-   CONFIG — fill these in from your Azure AD app registration
-   ============================================================ */
 const CONFIG = {
   clientId: "937602a7-5b81-4dd3-8538-50736d39e499",
   tenantId: "a953dcff-0257-4aba-972f-d00c6ec94e47",
   redirectUri: window.location.origin + window.location.pathname,
-  defaultDomain: "",                         // e.g. "company.com" — used to auto-suggest UPNs (optional)
+  defaultDomain: "",
   groups: {
     standard: "Anthropic Access - Standard",
     premium: "Anthropic Access - Premium",
@@ -414,14 +496,11 @@ const CONFIG = {
 const GRAPH_SCOPES = [
   "User.ReadWrite.All",
   "Group.ReadWrite.All",
-  "Directory.Read.All",
-  "Sites.ReadWrite.All",
-  "Organization.Read.All"
+  "Directory.ReadWrite.All",
+  "Organization.Read.All",
+  "Sites.ReadWrite.All"
 ];
 
-/* ============================================================
-   MSAL setup
-   ============================================================ */
 const msalInstance = new msal.PublicClientApplication({
   auth: {
     clientId: CONFIG.clientId,
@@ -437,32 +516,20 @@ const groupIdCache = {};
 async function getToken() {
   const account = activeAccount || msalInstance.getAllAccounts()[0];
   try {
-    const res = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
-    return res.accessToken;
-  } catch (e) {
-    const res = await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES });
-    return res.accessToken;
+    return (await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account })).accessToken;
+  } catch {
+    return (await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES })).accessToken;
   }
 }
 
 async function graph(path, options = {}, advanced = false) {
   const token = await getToken();
-  const headers = {
-    "Authorization": "Bearer " + token,
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
+  const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(options.headers || {}) };
   if (advanced) headers["ConsistencyLevel"] = "eventual";
-  const res = await fetch("https://graph.microsoft.com/v1.0" + path, {
-    ...options,
-    headers
-  });
+  const res = await fetch("https://graph.microsoft.com/v1.0" + path, { ...options, headers });
   if (!res.ok) {
     let msg = res.status + " " + res.statusText;
-    try {
-      const body = await res.json();
-      if (body?.error?.message) msg = body.error.message;
-    } catch {}
+    try { const b = await res.json(); if (b?.error?.message) msg = b.error.message; } catch {}
     throw new Error(msg);
   }
   if (res.status === 204) return null;
@@ -470,14 +537,12 @@ async function graph(path, options = {}, advanced = false) {
   return text ? JSON.parse(text) : null;
 }
 
-/* ============================================================
-   Sign in / sign out
-   ============================================================ */
+/* ── SIGN IN / OUT ── */
 document.getElementById("signInBtn").addEventListener("click", async () => {
   const errBox = document.getElementById("gateError");
   errBox.classList.add("hidden");
   try {
-    const res = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES, prompt: "select_account" });
+    const res = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES, prompt: "consent" });
     activeAccount = res.account;
     await enterApp();
   } catch (e) {
@@ -485,10 +550,7 @@ document.getElementById("signInBtn").addEventListener("click", async () => {
     errBox.classList.remove("hidden");
   }
 });
-
-document.getElementById("signOutBtn").addEventListener("click", () => {
-  msalInstance.logoutRedirect();
-});
+document.getElementById("signOutBtn").addEventListener("click", () => msalInstance.logoutRedirect());
 
 async function enterApp() {
   document.getElementById("gate").classList.add("hidden");
@@ -501,18 +563,12 @@ async function enterApp() {
   loadLicenses();
 }
 
-/* Restore session on reload */
 (function initExisting() {
   const accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    activeAccount = accounts[0];
-    enterApp();
-  }
+  if (accounts.length > 0) { activeAccount = accounts[0]; enterApp(); }
 })();
 
-/* ============================================================
-   Nav
-   ============================================================ */
+/* ── NAV ── */
 document.getElementById("navOnboard").addEventListener("click", () => switchTab("onboard"));
 document.getElementById("navOffboard").addEventListener("click", () => switchTab("offboard"));
 function switchTab(tab) {
@@ -522,87 +578,66 @@ function switchTab(tab) {
   document.getElementById("viewOffboard").classList.toggle("hidden", tab !== "offboard");
 }
 
-/* ============================================================
-   Directory hints — departments / job titles
-   ============================================================ */
+/* ── DIRECTORY HINTS ── */
 async function loadDirectoryHints() {
   try {
     const data = await graph("/users?$select=department,jobTitle&$top=999");
     const depts = new Set(), titles = new Set();
-    (data.value || []).forEach(u => {
-      if (u.department) depts.add(u.department);
-      if (u.jobTitle) titles.add(u.jobTitle);
-    });
-    const deptList = document.getElementById("deptList");
-    deptList.innerHTML = [...depts].sort().map(d => `<option value="${escapeHtml(d)}">`).join("");
-    const titleList = document.getElementById("titleList");
-    titleList.innerHTML = [...titles].sort().map(t => `<option value="${escapeHtml(t)}">`).join("");
+    (data.value || []).forEach(u => { if (u.department) depts.add(u.department); if (u.jobTitle) titles.add(u.jobTitle); });
+    document.getElementById("deptList").innerHTML = [...depts].sort().map(d => `<option value="${esc(d)}">`).join("");
+    document.getElementById("titleList").innerHTML = [...titles].sort().map(t => `<option value="${esc(t)}">`).join("");
+  } catch (e) { console.warn("hints:", e.message); }
+}
+
+/* ── VERIFIED DOMAINS ── */
+async function loadDomains() {
+  const sel = document.getElementById("fEmailDomain");
+  try {
+    const data = await graph("/domains?$select=id,isVerified,isDefault");
+    const verified = (data.value || []).filter(d => d.isVerified);
+    if (!verified.length) throw new Error("none");
+    const def = verified.find(d => d.isDefault);
+    sel.innerHTML = verified.map(d => `<option value="${esc(d.id)}" ${d.isDefault ? "selected" : ""}>${esc(d.id)}</option>`).join("");
   } catch (e) {
-    console.warn("Could not load directory hints:", e.message);
+    console.warn("domains:", e.message);
+    sel.innerHTML = `<option value="">Type domain manually</option>`;
   }
 }
 
-/* ============================================================
-   Display name / email auto-fill
-   ============================================================ */
+/* ── AUTO-FILL ── */
 let displayDirty = false, emailDirty = false;
 document.getElementById("fDisplay").addEventListener("input", () => displayDirty = true);
 document.getElementById("fEmailLocal").addEventListener("input", () => emailDirty = true);
-
 function syncAutoFields() {
   const first = document.getElementById("fFirst").value.trim();
   const last = document.getElementById("fLast").value.trim();
-  if (!displayDirty) {
-    document.getElementById("fDisplay").value = [first, last].filter(Boolean).join(" ");
-  }
-  if (!emailDirty) {
-    const local = (first + "." + last).toLowerCase().replace(/[^a-z0-9.]/g, "");
-    document.getElementById("fEmailLocal").value = local;
-  }
+  if (!displayDirty) document.getElementById("fDisplay").value = [first, last].filter(Boolean).join(" ");
+  if (!emailDirty) document.getElementById("fEmailLocal").value = (first + "." + last).toLowerCase().replace(/[^a-z0-9.]/g, "");
 }
 document.getElementById("fFirst").addEventListener("input", syncAutoFields);
 document.getElementById("fLast").addEventListener("input", syncAutoFields);
 
-/* ============================================================
-   Verified domains → UPN domain picker
-   ============================================================ */
-async function loadDomains() {
-  const sel = document.getElementById("fEmailDomain");
-  try {
-    const data = await graph("/domains?$select=id,isVerified");
-    const verified = (data.value || []).filter(d => d.isVerified).map(d => d.id);
-    if (verified.length === 0) throw new Error("no verified domains returned");
-    sel.innerHTML = verified.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
-    if (CONFIG.defaultDomain && verified.includes(CONFIG.defaultDomain)) {
-      sel.value = CONFIG.defaultDomain;
-    }
-  } catch (e) {
-    console.warn("Could not load verified domains:", e.message);
-    sel.innerHTML = CONFIG.defaultDomain
-      ? `<option value="${escapeHtml(CONFIG.defaultDomain)}">${escapeHtml(CONFIG.defaultDomain)}</option>`
-      : `<option value="">Could not load domains — type manually</option>`;
-  }
+/* ── PASSWORD ── */
+function generatePassword() {
+  const U = "ABCDEFGHJKLMNPQRSTUVWXYZ", L = "abcdefghijkmnopqrstuvwxyz", D = "23456789", S = "!@#$%&*?";
+  const A = U + L + D + S;
+  let pw = [U, L, D, S].map(s => s[Math.floor(Math.random() * s.length)]);
+  for (let i = 0; i < 10; i++) pw.push(A[Math.floor(Math.random() * A.length)]);
+  return pw.sort(() => Math.random() - 0.5).join("");
+}
+document.getElementById("genPwBtn").addEventListener("click", () => document.getElementById("fPassword").value = generatePassword());
+document.getElementById("copyPwBtn").addEventListener("click", () => { const v = document.getElementById("fPassword").value; if (v) navigator.clipboard.writeText(v); });
+
+/* ── COUNTRIES ── */
+const COUNTRIES=[["Afghanistan","AF"],["Albania","AL"],["Algeria","DZ"],["Argentina","AR"],["Armenia","AM"],["Australia","AU"],["Austria","AT"],["Azerbaijan","AZ"],["Bahrain","BH"],["Bangladesh","BD"],["Belarus","BY"],["Belgium","BE"],["Bolivia","BO"],["Bosnia and Herzegovina","BA"],["Brazil","BR"],["Bulgaria","BG"],["Cambodia","KH"],["Cameroon","CM"],["Canada","CA"],["Chile","CL"],["China","CN"],["Colombia","CO"],["Costa Rica","CR"],["Croatia","HR"],["Cyprus","CY"],["Czechia","CZ"],["Denmark","DK"],["Dominican Republic","DO"],["Ecuador","EC"],["Egypt","EG"],["Estonia","EE"],["Ethiopia","ET"],["Finland","FI"],["France","FR"],["Georgia","GE"],["Germany","DE"],["Ghana","GH"],["Greece","GR"],["Hong Kong SAR","HK"],["Hungary","HU"],["Iceland","IS"],["India","IN"],["Indonesia","ID"],["Iraq","IQ"],["Ireland","IE"],["Israel","IL"],["Italy","IT"],["Japan","JP"],["Jordan","JO"],["Kazakhstan","KZ"],["Kenya","KE"],["Kuwait","KW"],["Latvia","LV"],["Lebanon","LB"],["Lithuania","LT"],["Luxembourg","LU"],["Malaysia","MY"],["Malta","MT"],["Mexico","MX"],["Moldova","MD"],["Morocco","MA"],["Nepal","NP"],["Netherlands","NL"],["New Zealand","NZ"],["Nigeria","NG"],["North Macedonia","MK"],["Norway","NO"],["Oman","OM"],["Pakistan","PK"],["Panama","PA"],["Peru","PE"],["Philippines","PH"],["Poland","PL"],["Portugal","PT"],["Qatar","QA"],["Romania","RO"],["Russia","RU"],["Saudi Arabia","SA"],["Serbia","RS"],["Singapore","SG"],["Slovakia","SK"],["Slovenia","SI"],["South Africa","ZA"],["South Korea","KR"],["Spain","ES"],["Sri Lanka","LK"],["Sweden","SE"],["Switzerland","CH"],["Taiwan","TW"],["Tanzania","TZ"],["Thailand","TH"],["Tunisia","TN"],["Turkey","TR"],["Uganda","UG"],["Ukraine","UA"],["United Arab Emirates","AE"],["United Kingdom","GB"],["United States","US"],["Uruguay","UY"],["Uzbekistan","UZ"],["Venezuela","VE"],["Vietnam","VN"],["Zambia","ZM"],["Zimbabwe","ZW"]];
+function populateCountries() {
+  const sel = document.getElementById("fCountry");
+  sel.innerHTML = `<option value="">Select country…</option>` + COUNTRIES.map(([n, c]) => `<option value="${c}">${n}</option>`).join("");
+  sel.value = "IN";
 }
 
-/* ============================================================
-   Licenses — fetch tenant SKUs with availability
-   ============================================================ */
-const SKU_FRIENDLY_NAMES = {
-  "SPE_E3": "Microsoft 365 E3",
-  "SPE_E5": "Microsoft 365 E5",
-  "ENTERPRISEPACK": "Office 365 E3",
-  "ENTERPRISEPREMIUM": "Office 365 E5",
-  "SPB": "Microsoft 365 Business Premium",
-  "O365_BUSINESS_PREMIUM": "Microsoft 365 Business Standard",
-  "O365_BUSINESS_ESSENTIALS": "Microsoft 365 Business Basic",
-  "EXCHANGESTANDARD": "Exchange Online Plan 1",
-  "EXCHANGEENTERPRISE": "Exchange Online Plan 2",
-  "POWER_BI_PRO": "Power BI Pro",
-  "FLOW_FREE": "Power Automate Free",
-  "TEAMS_EXPLORATORY": "Teams Exploratory",
-  "EMS": "Enterprise Mobility + Security E3",
-  "EMSPREMIUM": "Enterprise Mobility + Security E5"
-};
+/* ── LICENSES ── */
+const SKU_NAMES={"SPE_E3":"Microsoft 365 E3","SPE_E5":"Microsoft 365 E5","SPE_F1":"Microsoft 365 F1","ENTERPRISEPACK":"Office 365 E3","ENTERPRISEPREMIUM":"Office 365 E5","SPB":"Microsoft 365 Business Premium","O365_BUSINESS_PREMIUM":"Microsoft 365 Business Standard","O365_BUSINESS_ESSENTIALS":"Microsoft 365 Business Basic","EXCHANGESTANDARD":"Exchange Online Plan 1","EXCHANGEENTERPRISE":"Exchange Online Plan 2","POWER_BI_PRO":"Power BI Pro","POWER_BI_STANDARD":"Power BI (free)","FLOW_FREE":"Power Automate Free","TEAMS_EXPLORATORY":"Teams Exploratory","EMS":"Enterprise Mobility + Security E3","EMSPREMIUM":"Enterprise Mobility + Security E5","PROJECTPREMIUM":"Project Plan 5","VISIOCLIENT":"Visio Plan 2","ATP_ENTERPRISE":"Microsoft Defender for Office 365 P1","THREAT_INTELLIGENCE":"Microsoft Defender for Office 365 P2","WIN_DEF_ATP":"Microsoft Defender for Endpoint P2","IDENTITY_THREAT_PROTECTION":"Microsoft 365 E5 Security","INFORMATION_PROTECTION_COMPLIANCE":"Microsoft 365 E5 Compliance","AAD_PREMIUM":"Azure AD Premium P1","AAD_PREMIUM_P2":"Azure AD Premium P2","RIGHTSMANAGEMENT":"Azure Information Protection P1","STREAM":"Microsoft Stream","POWERAPPS_VIRAL":"Power Apps Plan 2 Trial","MICROSOFT_BUSINESS_CENTER":"Microsoft Business Center","EXCHANGESTANDARD_STUDENT":"Exchange Online Plan 1 (Student)","STANDARDWOFFPACK_STUDENT":"Office 365 A1 for Students","STANDARDWOFFPACK_FACULTY":"Office 365 A1 for Faculty","M365EDU_A3_FACULTY":"Microsoft 365 A3 (Faculty)","M365EDU_A3_STUDENT":"Microsoft 365 A3 (Student)","M365EDU_A5_FACULTY":"Microsoft 365 A5 (Faculty)","M365EDU_A5_STUDENT":"Microsoft 365 A5 (Student)","ENTERPRISEPREMIUM_NOPSTNCONF":"Office 365 E5 (no PSTN)","DESKLESSPACK":"Office 365 F3","MCOSTANDARD":"Skype for Business Online Plan 2","PHONESYSTEM_VIRTUALUSER":"Phone System – Virtual User","MCOMEETADV":"Audio Conferencing","MCOPSTN1":"Domestic Calling Plan","MEETING_ROOM":"Meeting Room","TEAMS_FREE":"Microsoft Teams (Free)","RIGHTSMANAGEMENT_ADHOC":"Rights Management Ad-hoc","INTUNE_A":"Microsoft Intune Plan 1","CRMSTANDARD":"Dynamics 365 Customer Engagement Plan","PROJECTPROFESSIONAL":"Project Plan 3","WINDOWS_STORE":"Windows Store for Business","POWER_PAGES_VIRAL":"Power Pages (viral)","PBI_PREMIUM_PER_USER":"Power BI Premium Per User","Dynamics_365_for_Operations":"Dynamics 365 Operations","POWERAPPS_PER_USER":"Power Apps Per User Plan"};
 let availableSkus = [];
 async function loadLicenses() {
   const box = document.getElementById("licenseList");
@@ -610,189 +645,105 @@ async function loadLicenses() {
     const data = await graph("/subscribedSkus?$select=skuId,skuPartNumber,prepaidUnits,consumedUnits");
     availableSkus = (data.value || []).map(s => ({
       skuId: s.skuId,
-      name: SKU_FRIENDLY_NAMES[s.skuPartNumber] || s.skuPartNumber,
+      name: SKU_NAMES[s.skuPartNumber] || s.skuPartNumber,
       total: s.prepaidUnits?.enabled || 0,
       used: s.consumedUnits || 0
     }));
-    if (availableSkus.length === 0) {
-      box.innerHTML = `<div style="color:var(--ink-soft);">No licenses found on this tenant.</div>`;
-      return;
-    }
+    if (!availableSkus.length) { box.innerHTML = `<div style="color:var(--ink-soft);">No licenses found.</div>`; return; }
     box.innerHTML = availableSkus.map(s => {
-      const remaining = s.total - s.used;
-      const out = remaining <= 0;
-      return `
-        <div class="check-opt">
-          <input type="checkbox" class="license-cb" value="${s.skuId}" ${out ? "disabled" : ""} />
-          <label style="font-weight:400; ${out ? "color:#B7BCC6;" : ""}">${escapeHtml(s.name)} <span class="hint">(${remaining} of ${s.total} available)</span></label>
-        </div>`;
+      const rem = s.total - s.used, out = rem <= 0;
+      return `<div class="check-opt">
+        <input type="checkbox" class="license-cb" value="${s.skuId}" ${out ? "disabled" : ""} />
+        <label style="font-weight:400;${out ? "color:#4A5068;" : ""}">${esc(s.name)} <span class="hint">(${rem} of ${s.total} available)</span></label>
+      </div>`;
     }).join("");
-  } catch (e) {
-    box.innerHTML = `<div style="color:var(--danger);">Could not load licenses — ${escapeHtml(e.message)}</div>`;
-  }
+  } catch (e) { box.innerHTML = `<div style="color:var(--danger);">${esc(e.message)}</div>`; }
 }
 
-/* ============================================================
-   Password generator
-   ============================================================ */
-function generatePassword() {
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lower = "abcdefghijkmnopqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%&*?";
-  const all = upper + lower + digits + symbols;
-  let pw = [
-    upper[Math.floor(Math.random() * upper.length)],
-    lower[Math.floor(Math.random() * lower.length)],
-    digits[Math.floor(Math.random() * digits.length)],
-    symbols[Math.floor(Math.random() * symbols.length)]
-  ];
-  for (let i = 0; i < 10; i++) pw.push(all[Math.floor(Math.random() * all.length)]);
-  return pw.sort(() => Math.random() - 0.5).join("");
-}
-document.getElementById("genPwBtn").addEventListener("click", () => {
-  document.getElementById("fPassword").value = generatePassword();
-});
-document.getElementById("copyPwBtn").addEventListener("click", () => {
-  const val = document.getElementById("fPassword").value;
-  if (val) navigator.clipboard.writeText(val);
-});
-
-/* ============================================================
-   Country list → usageLocation
-   ============================================================ */
-const COUNTRIES = [
-["Afghanistan","AF"],["Albania","AL"],["Algeria","DZ"],["Argentina","AR"],["Armenia","AM"],
-["Australia","AU"],["Austria","AT"],["Azerbaijan","AZ"],["Bahrain","BH"],["Bangladesh","BD"],
-["Belarus","BY"],["Belgium","BE"],["Bolivia","BO"],["Bosnia and Herzegovina","BA"],["Brazil","BR"],
-["Bulgaria","BG"],["Cambodia","KH"],["Cameroon","CM"],["Canada","CA"],["Chile","CL"],
-["China","CN"],["Colombia","CO"],["Costa Rica","CR"],["Croatia","HR"],["Cyprus","CY"],
-["Czechia","CZ"],["Denmark","DK"],["Dominican Republic","DO"],["Ecuador","EC"],["Egypt","EG"],
-["Estonia","EE"],["Ethiopia","ET"],["Finland","FI"],["France","FR"],["Georgia","GE"],
-["Germany","DE"],["Ghana","GH"],["Greece","GR"],["Hong Kong SAR","HK"],["Hungary","HU"],
-["Iceland","IS"],["India","IN"],["Indonesia","ID"],["Iraq","IQ"],["Ireland","IE"],
-["Israel","IL"],["Italy","IT"],["Japan","JP"],["Jordan","JO"],["Kazakhstan","KZ"],
-["Kenya","KE"],["Kuwait","KW"],["Latvia","LV"],["Lebanon","LB"],["Lithuania","LT"],
-["Luxembourg","LU"],["Malaysia","MY"],["Malta","MT"],["Mexico","MX"],["Moldova","MD"],
-["Morocco","MA"],["Nepal","NP"],["Netherlands","NL"],["New Zealand","NZ"],["Nigeria","NG"],
-["North Macedonia","MK"],["Norway","NO"],["Oman","OM"],["Pakistan","PK"],["Panama","PA"],
-["Peru","PE"],["Philippines","PH"],["Poland","PL"],["Portugal","PT"],["Qatar","QA"],
-["Romania","RO"],["Russia","RU"],["Saudi Arabia","SA"],["Serbia","RS"],["Singapore","SG"],
-["Slovakia","SK"],["Slovenia","SI"],["South Africa","ZA"],["South Korea","KR"],["Spain","ES"],
-["Sri Lanka","LK"],["Sweden","SE"],["Switzerland","CH"],["Taiwan","TW"],["Tanzania","TZ"],
-["Thailand","TH"],["Tunisia","TN"],["Turkey","TR"],["Uganda","UG"],["Ukraine","UA"],
-["United Arab Emirates","AE"],["United Kingdom","GB"],["United States","US"],["Uruguay","UY"],
-["Uzbekistan","UZ"],["Venezuela","VE"],["Vietnam","VN"],["Zambia","ZM"],["Zimbabwe","ZW"]
-];
-function populateCountries() {
-  const sel = document.getElementById("fCountry");
-  sel.innerHTML = `<option value="">Select a country…</option>` +
-    COUNTRIES.map(([name, code]) => `<option value="${code}">${name}</option>`).join("");
-  const inDefault = COUNTRIES.find(c => c[0] === "India");
-  if (inDefault) sel.value = inDefault[1];
-}
-
-/* ============================================================
-   Generic typeahead user search (used by manager pickers)
-   ============================================================ */
+/* ── TYPEAHEAD ── */
 function wireUserSearch({ inputId, suggestId, pickedId, onPick }) {
   const input = document.getElementById(inputId);
   const suggestBox = document.getElementById(suggestId);
   const pickedBox = document.getElementById(pickedId);
-  let debounceTimer = null;
-
+  let timer = null;
   input.addEventListener("input", () => {
-    clearTimeout(debounceTimer);
+    clearTimeout(timer);
     const q = input.value.trim();
     if (q.length < 2) { suggestBox.classList.add("hidden"); return; }
-    debounceTimer = setTimeout(async () => {
+    timer = setTimeout(async () => {
       try {
         const safe = q.replace(/'/g, "''");
         const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,jobTitle&$count=true&$top=8`, {}, true);
         const results = data.value || [];
-        if (results.length === 0) { suggestBox.classList.add("hidden"); return; }
+        if (!results.length) { suggestBox.classList.add("hidden"); return; }
         suggestBox.innerHTML = results.map(u => `
-          <div class="suggest-item" data-id="${u.id}" data-name="${escapeHtml(u.displayName || "")}" data-mail="${escapeHtml(u.mail || "")}">
-            <div>${escapeHtml(u.displayName || "")}</div>
-            <div class="sub">${escapeHtml(u.mail || "")}${u.jobTitle ? " · " + escapeHtml(u.jobTitle) : ""}</div>
+          <div class="suggest-item" data-id="${u.id}" data-name="${esc(u.displayName || "")}" data-mail="${esc(u.mail || "")}">
+            <div>${esc(u.displayName || "")}</div>
+            <div class="sub">${esc(u.mail || "")}${u.jobTitle ? " · " + esc(u.jobTitle) : ""}</div>
           </div>`).join("");
         suggestBox.classList.remove("hidden");
         [...suggestBox.querySelectorAll(".suggest-item")].forEach(el => {
           el.addEventListener("click", () => {
             const picked = { id: el.dataset.id, displayName: el.dataset.name, mail: el.dataset.mail };
-            pickedBox.innerHTML = `<span class="picked-chip">${escapeHtml(picked.displayName)} <button type="button">✕</button></span>`;
+            pickedBox.innerHTML = `<span class="picked-chip">${esc(picked.displayName)} <button type="button">✕</button></span>`;
             pickedBox.classList.remove("hidden");
-            pickedBox.querySelector("button").addEventListener("click", () => {
-              pickedBox.classList.add("hidden");
-              pickedBox.innerHTML = "";
-              onPick(null);
-            });
-            input.value = "";
-            suggestBox.classList.add("hidden");
-            onPick(picked);
+            pickedBox.querySelector("button").addEventListener("click", () => { pickedBox.classList.add("hidden"); pickedBox.innerHTML = ""; onPick(null); });
+            input.value = ""; suggestBox.classList.add("hidden"); onPick(picked);
           });
         });
-      } catch (e) {
-        console.warn("user search failed:", e.message);
-      }
+      } catch (e) { console.warn("search:", e.message); }
     }, 300);
   });
-
-  document.addEventListener("click", (e) => {
-    if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden");
-  });
+  document.addEventListener("click", e => { if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden"); });
 }
 
 let selectedManager = null;
-wireUserSearch({
-  inputId: "fManagerSearch", suggestId: "managerSuggest", pickedId: "managerPicked",
-  onPick: (u) => selectedManager = u
-});
+wireUserSearch({ inputId: "fManagerSearch", suggestId: "managerSuggest", pickedId: "managerPicked", onPick: u => selectedManager = u });
 
 let offSelectedManager = null;
-wireUserSearch({
-  inputId: "offManagerSearch", suggestId: "offManagerSuggest", pickedId: "offManagerPicked",
-  onPick: (u) => offSelectedManager = u
-});
+wireUserSearch({ inputId: "offManagerSearch", suggestId: "offManagerSuggest", pickedId: "offManagerPicked", onPick: u => offSelectedManager = u });
 
-/* ============================================================
-   Group ID resolution (cached)
-   ============================================================ */
+/* ── GROUP ID ── */
 async function getGroupIdByName(name) {
   if (groupIdCache[name]) return groupIdCache[name];
   const safe = name.replace(/'/g, "''");
   const data = await graph(`/groups?$filter=displayName eq '${safe}'&$select=id,displayName`);
-  const group = (data.value || [])[0];
-  if (!group) throw new Error(`Group "${name}" was not found in the directory.`);
-  groupIdCache[name] = group.id;
-  return group.id;
+  const g = (data.value || [])[0];
+  if (!g) throw new Error(`Group "${name}" not found.`);
+  groupIdCache[name] = g.id;
+  return g.id;
 }
 
-/* ============================================================
-   Status log helpers
-   ============================================================ */
-function logStep(containerId, text, state) {
-  const container = document.getElementById(containerId);
-  const line = document.createElement("div");
+/* ── HELPERS ── */
+function logStep(cid, text, state) {
+  const c = document.getElementById(cid), line = document.createElement("div");
   line.className = "status-line " + state;
-  const icon = state === "ok" ? "✓" : state === "err" ? "✕" : "…";
-  line.innerHTML = `<span class="icon">${icon}</span><span>${escapeHtml(text)}</span>`;
-  container.appendChild(line);
-  return line;
+  const icon = state === "ok" ? "✓" : state === "err" ? "✕" : "⟳";
+  line.innerHTML = `<span class="icon">${icon}</span><span>${esc(text)}</span>`;
+  c.appendChild(line); return line;
 }
-function clearLog(containerId) { document.getElementById(containerId).innerHTML = ""; }
+function clearLog(id) { document.getElementById(id).innerHTML = ""; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function showError(id, msg) { const b = document.getElementById(id); b.textContent = msg; b.classList.remove("hidden"); }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
-}
+/* ── RESET FORM ── */
+document.getElementById("resetFormBtn").addEventListener("click", () => {
+  ["fFirst","fLast","fDisplay","fEmailLocal","fEmpId","fPhone","fPassword","fManagerSearch"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("fDept").value = ""; document.getElementById("fTitle").value = "";
+  document.getElementById("fForceChange").checked = true;
+  document.getElementById("claudeNone").checked = true;
+  document.getElementById("fZoho").checked = false;
+  document.getElementById("managerPicked").classList.add("hidden");
+  document.querySelectorAll(".license-cb").forEach(cb => cb.checked = false);
+  selectedManager = null; displayDirty = false; emailDirty = false;
+  clearLog("onboardStatus"); document.getElementById("onboardResult").innerHTML = "";
+  document.getElementById("onboardError").classList.add("hidden");
+});
 
-/* ============================================================
-   ONBOARD — create user
-   ============================================================ */
+/* ── CREATE USER ── */
 document.getElementById("createUserBtn").addEventListener("click", async () => {
   const errBox = document.getElementById("onboardError");
-  errBox.classList.add("hidden");
-  clearLog("onboardStatus");
+  errBox.classList.add("hidden"); clearLog("onboardStatus");
   document.getElementById("onboardResult").innerHTML = "";
 
   const first = document.getElementById("fFirst").value.trim();
@@ -813,51 +764,50 @@ document.getElementById("createUserBtn").addEventListener("click", async () => {
 
   if (!first || !last) { showError("onboardError", "First and last name are required."); return; }
   if (!emailLocal || !emailDomain) { showError("onboardError", "Email address (username and domain) is required."); return; }
-  if (!password) { showError("onboardError", "Generate a password before creating the user."); return; }
+  if (!password) { showError("onboardError", "Generate a password first."); return; }
+  if (!country) { showError("onboardError", "Country is required for license assignment."); return; }
 
-  const btn = document.getElementById("createUserBtn");
-  btn.disabled = true;
+  const btn = document.getElementById("createUserBtn"); btn.disabled = true;
 
   try {
-    const mailNickname = email.split("@")[0];
-    const step1 = logStep("onboardStatus", "Creating user account…", "pending");
+    const mailNickname = emailLocal;
+    const s1 = logStep("onboardStatus", "Creating user account…", "pending");
     const newUser = await graph("/users", {
       method: "POST",
       body: JSON.stringify({
         accountEnabled: true,
         displayName: display || `${first} ${last}`,
-        givenName: first,
-        surname: last,
-        mailNickname,
-        userPrincipalName: email,
-        department: dept || undefined,
-        jobTitle: title || undefined,
-        employeeId: empId || undefined,
-        mobilePhone: phone || undefined,
-        usageLocation: country || undefined,
-        passwordProfile: {
-          password,
-          forceChangePasswordNextSignIn: forceChange
-        }
+        givenName: first, surname: last,
+        mailNickname, userPrincipalName: email,
+        department: dept || undefined, jobTitle: title || undefined,
+        employeeId: empId || undefined, mobilePhone: phone || undefined,
+        usageLocation: country,
+        passwordProfile: { password, forceChangePasswordNextSignIn: forceChange }
       })
     });
-    step1.className = "status-line ok";
-    step1.querySelector(".icon").textContent = "✓";
+    s1.className = "status-line ok"; s1.querySelector(".icon").textContent = "✓";
 
     if (selectedManager) {
-      const step2 = logStep("onboardStatus", `Setting manager to ${selectedManager.displayName}…`, "pending");
+      const s2 = logStep("onboardStatus", `Setting manager → ${selectedManager.displayName}…`, "pending");
       try {
-        await graph(`/users/${newUser.id}/manager/$ref`, {
-          method: "PUT",
-          body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/users/${selectedManager.id}` })
-        });
-        step2.className = "status-line ok"; step2.querySelector(".icon").textContent = "✓";
-      } catch (e) {
-        step2.className = "status-line err"; step2.querySelector(".icon").textContent = "✕";
-        step2.querySelector("span:last-child").textContent += " — " + e.message;
-      }
+        await graph(`/users/${newUser.id}/manager/$ref`, { method: "PUT", body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/users/${selectedManager.id}` }) });
+        s2.className = "status-line ok"; s2.querySelector(".icon").textContent = "✓";
+      } catch (e) { s2.className = "status-line err"; s2.querySelector(".icon").textContent = "✕"; s2.querySelector("span:last-child").textContent += " — " + e.message; }
     }
 
+    // Licenses
+    const selectedLicenses = [...document.querySelectorAll(".license-cb:checked")].map(cb => cb.value);
+    const licensesAssigned = [];
+    if (selectedLicenses.length > 0) {
+      const sl = logStep("onboardStatus", "Assigning licenses…", "pending");
+      try {
+        await graph(`/users/${newUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: selectedLicenses.map(skuId => ({ skuId, disabledPlans: [] })), removeLicenses: [] }) });
+        sl.className = "status-line ok"; sl.querySelector(".icon").textContent = "✓";
+        licensesAssigned.push(...selectedLicenses.map(id => (availableSkus.find(s => s.skuId === id) || {}).name || id));
+      } catch (e) { sl.className = "status-line err"; sl.querySelector(".icon").textContent = "✕"; sl.querySelector("span:last-child").textContent += " — " + e.message; }
+    }
+
+    // Groups
     const groupsAdded = [];
     const groupTargets = [];
     if (claudeTier === "standard") groupTargets.push(CONFIG.groups.standard);
@@ -865,76 +815,33 @@ document.getElementById("createUserBtn").addEventListener("click", async () => {
     if (wantsZoho) groupTargets.push(CONFIG.groups.zoho);
 
     for (const groupName of groupTargets) {
-      const step = logStep("onboardStatus", `Adding to "${groupName}"…`, "pending");
+      const sg = logStep("onboardStatus", `Adding to "${groupName}"…`, "pending");
       try {
         const groupId = await getGroupIdByName(groupName);
-        await graph(`/groups/${groupId}/members/$ref`, {
-          method: "POST",
-          body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/directoryObjects/${newUser.id}` })
-        });
-        step.className = "status-line ok"; step.querySelector(".icon").textContent = "✓";
+        await graph(`/groups/${groupId}/members/$ref`, { method: "POST", body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/directoryObjects/${newUser.id}` }) });
+        sg.className = "status-line ok"; sg.querySelector(".icon").textContent = "✓";
         groupsAdded.push(groupName);
-      } catch (e) {
-        step.className = "status-line err"; step.querySelector(".icon").textContent = "✕";
-        step.querySelector("span:last-child").textContent += " — " + e.message;
-      }
-    }
-
-    const selectedLicenses = [...document.querySelectorAll(".license-cb:checked")].map(cb => cb.value);
-    const licensesAssigned = [];
-    if (selectedLicenses.length > 0) {
-      const step = logStep("onboardStatus", "Assigning licenses…", "pending");
-      try {
-        await graph(`/users/${newUser.id}/assignLicense`, {
-          method: "POST",
-          body: JSON.stringify({
-            addLicenses: selectedLicenses.map(skuId => ({ skuId, disabledPlans: [] })),
-            removeLicenses: []
-          })
-        });
-        step.className = "status-line ok"; step.querySelector(".icon").textContent = "✓";
-        licensesAssigned.push(...selectedLicenses.map(id => (availableSkus.find(s => s.skuId === id) || {}).name || id));
-      } catch (e) {
-        step.className = "status-line err"; step.querySelector(".icon").textContent = "✕";
-        step.querySelector("span:last-child").textContent += " — " + e.message;
-      }
+      } catch (e) { sg.className = "status-line err"; sg.querySelector(".icon").textContent = "✕"; sg.querySelector("span:last-child").textContent += " — " + e.message; }
     }
 
     document.getElementById("onboardResult").innerHTML = `
       <div class="result-panel">
-        <div><span class="k">User created</span> ${escapeHtml(display)}</div>
-        <div><span class="k">UPN</span> ${escapeHtml(email)}</div>
-        <div><span class="k">Temp password</span> <span class="mono">${escapeHtml(password)}</span></div>
-        <div><span class="k">Licenses</span> ${licensesAssigned.length ? escapeHtml(licensesAssigned.join(", ")) : "None"}</div>
-        <div><span class="k">Groups added</span> ${groupsAdded.length ? escapeHtml(groupsAdded.join(", ")) : "None"}</div>
+        <div><span class="k">User created</span> ${esc(display)}</div>
+        <div><span class="k">UPN</span> ${esc(email)}</div>
+        <div><span class="k">Temp password</span> <span class="mono">${esc(password)}</span></div>
+        <div><span class="k">Usage location</span> ${esc(country)}</div>
+        <div><span class="k">Licenses</span> ${licensesAssigned.length ? esc(licensesAssigned.join(", ")) : "None"}</div>
+        <div><span class="k">Groups</span> ${groupsAdded.length ? esc(groupsAdded.join(", ")) : "None"}</div>
       </div>`;
   } catch (e) {
     showError("onboardError", "Could not create user: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 });
 
-function showError(id, msg) {
-  const box = document.getElementById(id);
-  box.textContent = msg;
-  box.classList.remove("hidden");
-}
-
-/* ============================================================
-   OFFBOARD — find user
-   ============================================================ */
+/* ── OFFBOARD SEARCH ── */
 let offUser = null;
-
-wireUserSearch({
-  inputId: "offSearch", suggestId: "offSuggest", pickedId: "__offNone__unused",
-  onPick: () => {}
-});
-// Override: offboard search needs full user object + status, not just id/name/mail.
-// Replace the generic handler with a dedicated one below.
-(function setupOffSearch() {
-  const input = document.getElementById("offSearch");
-  const suggestBox = document.getElementById("offSuggest");
+(function() {
+  const input = document.getElementById("offSearch"), suggestBox = document.getElementById("offSuggest");
   let timer = null;
   input.addEventListener("input", () => {
     clearTimeout(timer);
@@ -945,27 +852,16 @@ wireUserSearch({
         const safe = q.replace(/'/g, "''");
         const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,department,jobTitle,accountEnabled&$count=true&$top=8`, {}, true);
         const results = data.value || [];
-        if (results.length === 0) { suggestBox.classList.add("hidden"); return; }
-        suggestBox.innerHTML = results.map((u,i) => `
-          <div class="suggest-item" data-idx="${i}">
-            <div>${escapeHtml(u.displayName || "")}</div>
-            <div class="sub">${escapeHtml(u.mail || "")}${u.department ? " · " + escapeHtml(u.department) : ""}</div>
-          </div>`).join("");
+        if (!results.length) { suggestBox.classList.add("hidden"); return; }
+        suggestBox.innerHTML = results.map((u, i) => `<div class="suggest-item" data-idx="${i}"><div>${esc(u.displayName || "")}</div><div class="sub">${esc(u.mail || "")}${u.department ? " · " + esc(u.department) : ""}</div></div>`).join("");
         suggestBox.classList.remove("hidden");
         [...suggestBox.querySelectorAll(".suggest-item")].forEach(el => {
-          el.addEventListener("click", () => {
-            offUser = results[+el.dataset.idx];
-            renderOffSelected();
-            suggestBox.classList.add("hidden");
-            input.value = "";
-          });
+          el.addEventListener("click", () => { offUser = results[+el.dataset.idx]; renderOffSelected(); suggestBox.classList.add("hidden"); input.value = ""; });
         });
       } catch (e) { console.warn(e.message); }
     }, 300);
   });
-  document.addEventListener("click", (e) => {
-    if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden");
-  });
+  document.addEventListener("click", e => { if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden"); });
 })();
 
 function renderOffSelected() {
@@ -976,18 +872,14 @@ function renderOffSelected() {
   const badge = document.getElementById("offBadge");
   badge.textContent = offUser.accountEnabled ? "Enabled" : "Disabled";
   badge.className = "badge " + (offUser.accountEnabled ? "enabled" : "disabled");
-  clearLog("offboardStatus");
-  document.getElementById("psSection").classList.add("hidden");
+  clearLog("offboardStatus"); document.getElementById("psSection").classList.add("hidden");
 }
 
-/* ============================================================
-   OFFBOARD — run actions
-   ============================================================ */
+/* ── RUN OFFBOARDING ── */
 document.getElementById("runOffboardBtn").addEventListener("click", async () => {
   if (!offUser) return;
   const errBox = document.getElementById("offboardError");
-  errBox.classList.add("hidden");
-  clearLog("offboardStatus");
+  errBox.classList.add("hidden"); clearLog("offboardStatus");
 
   const doDisable = document.getElementById("actDisable").checked;
   const doGroups = document.getElementById("actGroups").checked;
@@ -996,13 +888,11 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
   const doShared = document.getElementById("actShared").checked;
   const doHide = document.getElementById("actHide").checked;
   const doForward = document.getElementById("actForward").checked;
-
-  const btn = document.getElementById("runOffboardBtn");
-  btn.disabled = true;
+  const btn = document.getElementById("runOffboardBtn"); btn.disabled = true;
 
   try {
     if (doDisable) {
-      const s = logStep("offboardStatus", "Disabling account…", "pending");
+      const s = logStep("offboardStatus", "Disabling account + revoking sessions…", "pending");
       try {
         await graph(`/users/${offUser.id}`, { method: "PATCH", body: JSON.stringify({ accountEnabled: false }) });
         await graph(`/users/${offUser.id}/revokeSignInSessions`, { method: "POST" });
@@ -1014,21 +904,10 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
       const s = logStep("offboardStatus", "Removing group memberships & licenses…", "pending");
       try {
         const memberOf = await graph(`/users/${offUser.id}/memberOf?$select=id,displayName`);
-        for (const g of (memberOf.value || [])) {
-          try {
-            await graph(`/groups/${g.id}/members/${offUser.id}/$ref`, { method: "DELETE" });
-          } catch (inner) {
-            // likely a dynamic-membership group — cannot be removed manually, skip
-          }
-        }
+        for (const g of (memberOf.value || [])) { try { await graph(`/groups/${g.id}/members/${offUser.id}/$ref`, { method: "DELETE" }); } catch {} }
         const userLic = await graph(`/users/${offUser.id}?$select=assignedLicenses`);
         const skuIds = (userLic.assignedLicenses || []).map(l => l.skuId);
-        if (skuIds.length > 0) {
-          await graph(`/users/${offUser.id}/assignLicense`, {
-            method: "POST",
-            body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds })
-          });
-        }
+        if (skuIds.length > 0) await graph(`/users/${offUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds }) });
         s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
       } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
     }
@@ -1037,32 +916,19 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
       const s = logStep("offboardStatus", "Resetting password…", "pending");
       try {
         const newPw = generatePassword();
-        await graph(`/users/${offUser.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ passwordProfile: { password: newPw, forceChangePasswordNextSignIn: true } })
-        });
+        await graph(`/users/${offUser.id}`, { method: "PATCH", body: JSON.stringify({ passwordProfile: { password: newPw, forceChangePasswordNextSignIn: true } }) });
         s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
-        s.querySelector("span:last-child").textContent += ` — new password: ${newPw}`;
+        s.querySelector("span:last-child").textContent += ` — ${newPw}`;
       } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
     }
 
     if (doOnedrive) {
       const s = logStep("offboardStatus", "Granting manager access to OneDrive…", "pending");
-      if (!offSelectedManager) {
-        s.className = "status-line err"; s.querySelector(".icon").textContent = "✕";
-        s.querySelector("span:last-child").textContent += " — no manager selected, skipped";
-      } else {
+      if (!offSelectedManager) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — no manager selected"; }
+      else {
         try {
           const drive = await graph(`/users/${offUser.id}/drive`);
-          await graph(`/drives/${drive.id}/items/root/invite`, {
-            method: "POST",
-            body: JSON.stringify({
-              requireSignIn: true,
-              sendInvitation: false,
-              roles: ["read"],
-              recipients: [{ email: offSelectedManager.mail }]
-            })
-          });
+          await graph(`/drives/${drive.id}/items/root/invite`, { method: "POST", body: JSON.stringify({ requireSignIn: true, sendInvitation: false, roles: ["read"], recipients: [{ email: offSelectedManager.mail }] }) });
           s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
         } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
       }
@@ -1071,23 +937,18 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
     if (doShared || doHide || doForward) {
       const upn = offUser.mail || "";
       const mgrMail = offSelectedManager ? offSelectedManager.mail : "MANAGER_EMAIL_HERE";
-      const lines = ["# Connect-ExchangeOnline first, then run:"];
+      const lines = ["# Connect-ExchangeOnline first, then run:\n"];
       if (doShared) lines.push(`Set-Mailbox -Identity "${upn}" -Type Shared`);
       if (doHide) lines.push(`Set-Mailbox -Identity "${upn}" -HiddenFromAddressListsEnabled $true`);
       if (doForward) lines.push(`Set-Mailbox -Identity "${upn}" -ForwardingSmtpAddress "${mgrMail}" -DeliverToMailboxAndForward $false`);
       document.getElementById("psBox").value = lines.join("\n");
       document.getElementById("psSection").classList.remove("hidden");
     }
-  } catch (e) {
-    showError("offboardError", "Offboarding hit an error: " + e.message);
-  } finally {
-    btn.disabled = false;
-  }
+  } catch (e) { showError("offboardError", "Error: " + e.message); }
+  finally { btn.disabled = false; }
 });
 
-document.getElementById("copyPsBtn").addEventListener("click", () => {
-  navigator.clipboard.writeText(document.getElementById("psBox").value);
-});
+document.getElementById("copyPsBtn").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("psBox").value));
 </script>
 </body>
 </html>
