@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IT Provisioning — Onboard / Offboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --panel:#FFFFFF;
+    --ink:#1B1F27;
+    --ink-soft:#5B6270;
+    --line:#E2E4EA;
+    --accent:#3454D1;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#EDF0FC;
+    --danger:#C4433A;
+    --danger-soft:#FBEAE8;
+    --ok:#0F9B72;
+    --ok-soft:#E8F7F1;
+    --radius:6px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{ display:flex; min-height:100vh; }
+
+  /* Left rail */
+  .rail{
+    width:230px;
+    flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:24px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:24px;
+  }
+  .brand{ padding:0 8px; }
+  .brand .name{ font-weight:700; font-size:15px; letter-spacing:-0.01em; }
+  .brand .sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .nav{ display:flex; flex-direction:column; gap:2px; }
+  .nav button{
+    all:unset; cursor:pointer;
+    padding:10px 12px; border-radius:var(--radius);
+    font-size:14px; font-weight:500; color:var(--ink-soft);
+  }
+  .nav button.active{ background:var(--accent-soft); color:var(--accent); }
+  .nav button:hover:not(.active){ background:#F0F1F4; color:var(--ink); }
+
+  .session{ margin-top:auto; padding:12px 8px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-soft); }
+  .session .who{ color:var(--ink); font-weight:500; font-size:13px; margin-bottom:8px; word-break:break-all; }
+  .session button{
+    all:unset; cursor:pointer; font-size:12px; color:var(--accent); font-weight:500;
+  }
+
+  /* Main */
+  .main{ flex:1; padding:32px 40px; max-width:920px; }
+  h1{ font-size:20px; margin:0 0 4px; letter-spacing:-0.01em; }
+  .lede{ color:var(--ink-soft); font-size:13.5px; margin:0 0 28px; max-width:60ch; line-height:1.5; }
+
+  .gate{ display:flex; flex-direction:column; align-items:flex-start; gap:16px; padding:60px 0; }
+  .gate p{ color:var(--ink-soft); max-width:46ch; line-height:1.6; font-size:14px; }
+
+  button.primary{
+    all:unset; cursor:pointer;
+    background:var(--accent); color:var(--accent-ink);
+    padding:10px 18px; border-radius:var(--radius);
+    font-size:14px; font-weight:600;
+  }
+  button.primary:hover{ filter:brightness(1.08); }
+  button.primary:disabled{ opacity:.5; cursor:not-allowed; }
+
+  button.secondary{
+    all:unset; cursor:pointer;
+    background:var(--panel); color:var(--ink);
+    border:1px solid var(--line);
+    padding:9px 16px; border-radius:var(--radius);
+    font-size:13.5px; font-weight:500;
+  }
+  button.secondary:hover{ background:#F0F1F4; }
+
+  button.danger{
+    all:unset; cursor:pointer;
+    background:var(--danger); color:#fff;
+    padding:10px 18px; border-radius:var(--radius);
+    font-size:14px; font-weight:600;
+  }
+  button.danger:hover{ filter:brightness(1.08); }
+  button.danger:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:24px; margin-bottom:20px;
+  }
+  .card h2{ font-size:14px; margin:0 0 16px; letter-spacing:-0.01em; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px 20px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field.full{ grid-column:1 / -1; }
+  label{ font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+  label .hint{ font-weight:400; color:#9AA0AC; margin-left:4px; }
+  input[type=text], input[type=tel], input[type=email], select{
+    font-family:inherit; font-size:14px; padding:9px 10px;
+    border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; color:var(--ink);
+  }
+  input:focus, select:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  .mono{ font-family:'IBM Plex Mono', monospace; font-size:13px; }
+
+  .radio-row, .check-row{ display:flex; gap:18px; flex-wrap:wrap; }
+  .radio-opt, .check-opt{ display:flex; align-items:center; gap:7px; font-size:13.5px; }
+
+  .pw-row{ display:flex; gap:8px; align-items:center; }
+  .pw-row input{ flex:1; }
+
+  .manager-wrap{ position:relative; }
+  .suggest{
+    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:10;
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:0 6px 18px rgba(20,24,34,.09); max-height:220px; overflow-y:auto;
+  }
+  .suggest-item{ padding:8px 12px; cursor:pointer; font-size:13.5px; }
+  .suggest-item:hover{ background:var(--accent-soft); }
+  .suggest-item .sub{ color:var(--ink-soft); font-size:12px; }
+  .picked-chip{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--accent-soft); color:var(--accent);
+    padding:6px 10px; border-radius:var(--radius); font-size:13px; font-weight:500;
+  }
+  .picked-chip button{ all:unset; cursor:pointer; font-weight:700; }
+
+  .actions-bar{ display:flex; gap:10px; margin-top:22px; align-items:center; }
+
+  .status-log{ margin-top:18px; display:flex; flex-direction:column; gap:6px; }
+  .status-line{ font-size:13px; display:flex; gap:8px; align-items:flex-start; }
+  .status-line .icon{ width:16px; flex-shrink:0; }
+  .status-line.ok{ color:var(--ok); }
+  .status-line.err{ color:var(--danger); }
+  .status-line.pending{ color:var(--ink-soft); }
+
+  .result-panel{
+    border:1px solid var(--ok); background:var(--ok-soft); border-radius:8px;
+    padding:18px 20px; margin-top:16px; font-size:13.5px; line-height:1.7;
+  }
+  .result-panel .k{ color:var(--ink-soft); display:inline-block; width:120px; }
+
+  .error-panel{
+    border:1px solid var(--danger); background:var(--danger-soft); border-radius:8px;
+    padding:12px 16px; margin-top:14px; font-size:13px; color:var(--danger);
+  }
+
+  textarea.ps-box{
+    width:100%; min-height:130px; font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px; background:#12141A; color:#D9DEE8; border:none; border-radius:var(--radius);
+    padding:14px; line-height:1.6; resize:vertical;
+  }
+  .ps-note{ font-size:12.5px; color:var(--ink-soft); margin:10px 0 8px; line-height:1.6; }
+
+  .selected-user{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; background:#F7F8FA; border:1px solid var(--line); border-radius:var(--radius);
+    margin-bottom:16px;
+  }
+  .selected-user .name{ font-weight:600; font-size:14px; }
+  .selected-user .meta{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; }
+  .badge{ font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; }
+  .badge.enabled{ background:var(--ok-soft); color:var(--ok); }
+  .badge.disabled{ background:var(--danger-soft); color:var(--danger); }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="rail">
+    <div class="brand">
+      <div class="name">IT Provisioning</div>
+      <div class="sub">Onboarding / Offboarding</div>
+    </div>
+    <div class="nav">
+      <button id="navOnboard" class="active">Onboard user</button>
+      <button id="navOffboard">Offboard user</button>
+    </div>
+    <div class="session hidden" id="sessionBox">
+      <div class="who" id="whoAmI"></div>
+      <button id="signOutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- SIGN-IN GATE -->
+    <div id="gate" class="gate">
+      <h1>IT Provisioning</h1>
+      <p>Sign in with an account that has Microsoft Graph admin rights (User, Group, and Directory administrator) to onboard and offboard employees.</p>
+      <button class="primary" id="signInBtn">Sign in with Microsoft</button>
+      <p id="gateError" class="error-panel hidden"></p>
+    </div>
+
+    <!-- APP CONTENT -->
+    <div id="app" class="hidden">
+
+      <!-- ONBOARD VIEW -->
+      <div id="viewOnboard">
+        <h1>Onboard user</h1>
+        <p class="lede">Creates the account in Entra ID and applies group-based access. Fields with a suggestion list are pulled from your existing directory.</p>
+
+        <div class="card">
+          <h2>Identity</h2>
+          <div class="grid">
+            <div class="field">
+              <label>First name</label>
+              <input type="text" id="fFirst" />
+            </div>
+            <div class="field">
+              <label>Last name</label>
+              <input type="text" id="fLast" />
+            </div>
+            <div class="field full">
+              <label>Display name <span class="hint">auto-filled, editable</span></label>
+              <input type="text" id="fDisplay" />
+            </div>
+            <div class="field full">
+              <label>Email address (UPN) <span class="hint">auto-suggested, editable</span></label>
+              <input type="email" id="fEmail" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Role & organization</h2>
+          <div class="grid">
+            <div class="field">
+              <label>Department</label>
+              <input type="text" id="fDept" list="deptList" placeholder="Start typing…" />
+              <datalist id="deptList"></datalist>
+            </div>
+            <div class="field">
+              <label>Designation / job title</label>
+              <input type="text" id="fTitle" list="titleList" placeholder="Start typing…" />
+              <datalist id="titleList"></datalist>
+            </div>
+            <div class="field">
+              <label>Employee ID</label>
+              <input type="text" id="fEmpId" />
+            </div>
+            <div class="field">
+              <label>Phone number</label>
+              <input type="tel" id="fPhone" />
+            </div>
+            <div class="field full manager-wrap">
+              <label>Manager</label>
+              <input type="text" id="fManagerSearch" placeholder="Search by name or email…" autocomplete="off" />
+              <div id="managerSuggest" class="suggest hidden"></div>
+              <div id="managerPicked" class="hidden" style="margin-top:8px;"></div>
+            </div>
+            <div class="field">
+              <label>Country <span class="hint">sets usage location for licensing</span></label>
+              <select id="fCountry"></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Password</h2>
+          <div class="grid">
+            <div class="field full">
+              <label>Temporary password</label>
+              <div class="pw-row">
+                <input type="text" id="fPassword" class="mono" readonly />
+                <button class="secondary" id="genPwBtn" type="button">Generate</button>
+                <button class="secondary" id="copyPwBtn" type="button">Copy</button>
+              </div>
+            </div>
+            <div class="field full">
+              <div class="check-opt">
+                <input type="checkbox" id="fForceChange" checked />
+                <label for="fForceChange" style="font-weight:400; color:var(--ink);">Require password change at next sign-in</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>App access</h2>
+          <div class="grid">
+            <div class="field full">
+              <label>Claude</label>
+              <div class="radio-row">
+                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudeNone" value="none" checked /><label for="claudeNone" style="font-weight:400;">None</label></div>
+                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudeStd" value="standard" /><label for="claudeStd" style="font-weight:400;">Claude Standard</label></div>
+                <div class="radio-opt"><input type="radio" name="claudeTier" id="claudePrem" value="premium" /><label for="claudePrem" style="font-weight:400;">Claude Premium</label></div>
+              </div>
+            </div>
+            <div class="field full">
+              <label>Zoho</label>
+              <div class="check-opt">
+                <input type="checkbox" id="fZoho" />
+                <label for="fZoho" style="font-weight:400; color:var(--ink);">Grant Zoho access</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <button class="primary" id="createUserBtn">Create user</button>
+        </div>
+
+        <div id="onboardStatus" class="status-log"></div>
+        <div id="onboardResult"></div>
+        <div id="onboardError" class="error-panel hidden"></div>
+      </div>
+
+      <!-- OFFBOARD VIEW -->
+      <div id="viewOffboard" class="hidden">
+        <h1>Offboard user</h1>
+        <p class="lede">Search for the departing employee, confirm the actions, and run them. Mailbox-level actions (shared mailbox conversion, hiding from the address list, and forwarding) require Exchange Online PowerShell — this tool generates that script for you.</p>
+
+        <div class="card">
+          <h2>Find user</h2>
+          <div class="manager-wrap">
+            <input type="text" id="offSearch" placeholder="Search by name or email…" autocomplete="off" />
+            <div id="offSuggest" class="suggest hidden"></div>
+          </div>
+
+          <div id="offSelected" class="hidden" style="margin-top:16px;">
+            <div class="selected-user">
+              <div>
+                <div class="name" id="offName"></div>
+                <div class="meta" id="offMeta"></div>
+              </div>
+              <span class="badge" id="offBadge"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="offActionsCard" class="card hidden">
+          <h2>Actions</h2>
+          <div class="grid">
+            <div class="field full">
+              <label>Manager to hand off to <span class="hint">used for OneDrive access + mail forwarding</span></label>
+              <input type="text" id="offManagerSearch" placeholder="Search by name or email…" autocomplete="off" />
+              <div id="offManagerSuggest" class="suggest hidden"></div>
+              <div id="offManagerPicked" class="hidden" style="margin-top:8px;"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:18px; display:flex; flex-direction:column; gap:10px;">
+            <div class="check-opt"><input type="checkbox" id="actDisable" checked /><label for="actDisable" style="font-weight:500;">Disable account + revoke sign-in sessions</label></div>
+            <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships & licenses</label></div>
+            <div class="check-opt"><input type="checkbox" id="actReset" checked /><label for="actReset" style="font-weight:500;">Reset password (random)</label></div>
+            <div class="check-opt"><input type="checkbox" id="actOnedrive" checked /><label for="actOnedrive" style="font-weight:500;">Grant manager read access to OneDrive</label></div>
+            <div class="check-opt"><input type="checkbox" id="actShared" checked /><label for="actShared" style="font-weight:500;">Convert mailbox to shared <span class="hint">(PowerShell)</span></label></div>
+            <div class="check-opt"><input type="checkbox" id="actHide" checked /><label for="actHide" style="font-weight:500;">Hide from Global Address List <span class="hint">(PowerShell)</span></label></div>
+            <div class="check-opt"><input type="checkbox" id="actForward" checked /><label for="actForward" style="font-weight:500;">Forward mail to manager <span class="hint">(PowerShell)</span></label></div>
+          </div>
+
+          <div class="actions-bar">
+            <button class="danger" id="runOffboardBtn">Run offboarding</button>
+          </div>
+
+          <div id="offboardStatus" class="status-log"></div>
+          <div id="offboardError" class="error-panel hidden"></div>
+
+          <div id="psSection" class="hidden" style="margin-top:20px;">
+            <h2 style="font-size:14px; margin-bottom:6px;">Exchange Online PowerShell</h2>
+            <p class="ps-note">Run these in an Exchange Online PowerShell session (<code>Connect-ExchangeOnline</code> first) — Graph doesn't expose these mailbox settings.</p>
+            <textarea id="psBox" class="ps-box" readonly></textarea>
+            <div style="margin-top:10px;"><button class="secondary" id="copyPsBtn" type="button">Copy script</button></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — fill these in from your Azure AD app registration
+   ============================================================ */
+const CONFIG = {
+  clientId: "937602a7-5b81-4dd3-8538-50736d39e499",
+  tenantId: "a953dcff-0257-4aba-972f-d00c6ec94e47",
+  redirectUri: window.location.origin + window.location.pathname,
+  defaultDomain: "",                         // e.g. "company.com" — used to auto-suggest UPNs (optional)
+  groups: {
+    standard: "Anthropic Access - Standard",
+    premium: "Anthropic Access - Premium",
+    zoho: "Zoho Access"
+  }
+};
+
+const GRAPH_SCOPES = [
+  "User.ReadWrite.All",
+  "Group.ReadWrite.All",
+  "Directory.Read.All",
+  "Sites.ReadWrite.All"
+];
+
+/* ============================================================
+   MSAL setup
+   ============================================================ */
+const msalInstance = new msal.PublicClientApplication({
+  auth: {
+    clientId: CONFIG.clientId,
+    authority: "https://login.microsoftonline.com/" + CONFIG.tenantId,
+    redirectUri: CONFIG.redirectUri
+  },
+  cache: { cacheLocation: "sessionStorage" }
+});
+
+let activeAccount = null;
+const groupIdCache = {};
+
+async function getToken() {
+  const account = activeAccount || msalInstance.getAllAccounts()[0];
+  try {
+    const res = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account });
+    return res.accessToken;
+  } catch (e) {
+    const res = await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES });
+    return res.accessToken;
+  }
+}
+
+async function graph(path, options = {}) {
+  const token = await getToken();
+  const res = await fetch("https://graph.microsoft.com/v1.0" + path, {
+    ...options,
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    let msg = res.status + " " + res.statusText;
+    try {
+      const body = await res.json();
+      if (body?.error?.message) msg = body.error.message;
+    } catch {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/* ============================================================
+   Sign in / sign out
+   ============================================================ */
+document.getElementById("signInBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("gateError");
+  errBox.classList.add("hidden");
+  try {
+    const res = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES, prompt: "select_account" });
+    activeAccount = res.account;
+    await enterApp();
+  } catch (e) {
+    errBox.textContent = "Sign-in failed: " + e.message;
+    errBox.classList.remove("hidden");
+  }
+});
+
+document.getElementById("signOutBtn").addEventListener("click", () => {
+  msalInstance.logoutRedirect();
+});
+
+async function enterApp() {
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("sessionBox").classList.remove("hidden");
+  document.getElementById("whoAmI").textContent = activeAccount.username;
+  populateCountries();
+  loadDirectoryHints();
+}
+
+/* Restore session on reload */
+(function initExisting() {
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    activeAccount = accounts[0];
+    enterApp();
+  }
+})();
+
+/* ============================================================
+   Nav
+   ============================================================ */
+document.getElementById("navOnboard").addEventListener("click", () => switchTab("onboard"));
+document.getElementById("navOffboard").addEventListener("click", () => switchTab("offboard"));
+function switchTab(tab) {
+  document.getElementById("navOnboard").classList.toggle("active", tab === "onboard");
+  document.getElementById("navOffboard").classList.toggle("active", tab === "offboard");
+  document.getElementById("viewOnboard").classList.toggle("hidden", tab !== "onboard");
+  document.getElementById("viewOffboard").classList.toggle("hidden", tab !== "offboard");
+}
+
+/* ============================================================
+   Directory hints — departments / job titles
+   ============================================================ */
+async function loadDirectoryHints() {
+  try {
+    const data = await graph("/users?$select=department,jobTitle&$top=999");
+    const depts = new Set(), titles = new Set();
+    (data.value || []).forEach(u => {
+      if (u.department) depts.add(u.department);
+      if (u.jobTitle) titles.add(u.jobTitle);
+    });
+    const deptList = document.getElementById("deptList");
+    deptList.innerHTML = [...depts].sort().map(d => `<option value="${escapeHtml(d)}">`).join("");
+    const titleList = document.getElementById("titleList");
+    titleList.innerHTML = [...titles].sort().map(t => `<option value="${escapeHtml(t)}">`).join("");
+  } catch (e) {
+    console.warn("Could not load directory hints:", e.message);
+  }
+}
+
+/* ============================================================
+   Display name / email auto-fill
+   ============================================================ */
+let displayDirty = false, emailDirty = false;
+document.getElementById("fDisplay").addEventListener("input", () => displayDirty = true);
+document.getElementById("fEmail").addEventListener("input", () => emailDirty = true);
+
+function syncAutoFields() {
+  const first = document.getElementById("fFirst").value.trim();
+  const last = document.getElementById("fLast").value.trim();
+  if (!displayDirty) {
+    document.getElementById("fDisplay").value = [first, last].filter(Boolean).join(" ");
+  }
+  if (!emailDirty) {
+    const local = (first + "." + last).toLowerCase().replace(/[^a-z0-9.]/g, "");
+    document.getElementById("fEmail").value = local ? (CONFIG.defaultDomain ? `${local}@${CONFIG.defaultDomain}` : local) : "";
+  }
+}
+document.getElementById("fFirst").addEventListener("input", syncAutoFields);
+document.getElementById("fLast").addEventListener("input", syncAutoFields);
+
+/* ============================================================
+   Password generator
+   ============================================================ */
+function generatePassword() {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%&*?";
+  const all = upper + lower + digits + symbols;
+  let pw = [
+    upper[Math.floor(Math.random() * upper.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    symbols[Math.floor(Math.random() * symbols.length)]
+  ];
+  for (let i = 0; i < 10; i++) pw.push(all[Math.floor(Math.random() * all.length)]);
+  return pw.sort(() => Math.random() - 0.5).join("");
+}
+document.getElementById("genPwBtn").addEventListener("click", () => {
+  document.getElementById("fPassword").value = generatePassword();
+});
+document.getElementById("copyPwBtn").addEventListener("click", () => {
+  const val = document.getElementById("fPassword").value;
+  if (val) navigator.clipboard.writeText(val);
+});
+
+/* ============================================================
+   Country list → usageLocation
+   ============================================================ */
+const COUNTRIES = [
+["Afghanistan","AF"],["Albania","AL"],["Algeria","DZ"],["Argentina","AR"],["Armenia","AM"],
+["Australia","AU"],["Austria","AT"],["Azerbaijan","AZ"],["Bahrain","BH"],["Bangladesh","BD"],
+["Belarus","BY"],["Belgium","BE"],["Bolivia","BO"],["Bosnia and Herzegovina","BA"],["Brazil","BR"],
+["Bulgaria","BG"],["Cambodia","KH"],["Cameroon","CM"],["Canada","CA"],["Chile","CL"],
+["China","CN"],["Colombia","CO"],["Costa Rica","CR"],["Croatia","HR"],["Cyprus","CY"],
+["Czechia","CZ"],["Denmark","DK"],["Dominican Republic","DO"],["Ecuador","EC"],["Egypt","EG"],
+["Estonia","EE"],["Ethiopia","ET"],["Finland","FI"],["France","FR"],["Georgia","GE"],
+["Germany","DE"],["Ghana","GH"],["Greece","GR"],["Hong Kong SAR","HK"],["Hungary","HU"],
+["Iceland","IS"],["India","IN"],["Indonesia","ID"],["Iraq","IQ"],["Ireland","IE"],
+["Israel","IL"],["Italy","IT"],["Japan","JP"],["Jordan","JO"],["Kazakhstan","KZ"],
+["Kenya","KE"],["Kuwait","KW"],["Latvia","LV"],["Lebanon","LB"],["Lithuania","LT"],
+["Luxembourg","LU"],["Malaysia","MY"],["Malta","MT"],["Mexico","MX"],["Moldova","MD"],
+["Morocco","MA"],["Nepal","NP"],["Netherlands","NL"],["New Zealand","NZ"],["Nigeria","NG"],
+["North Macedonia","MK"],["Norway","NO"],["Oman","OM"],["Pakistan","PK"],["Panama","PA"],
+["Peru","PE"],["Philippines","PH"],["Poland","PL"],["Portugal","PT"],["Qatar","QA"],
+["Romania","RO"],["Russia","RU"],["Saudi Arabia","SA"],["Serbia","RS"],["Singapore","SG"],
+["Slovakia","SK"],["Slovenia","SI"],["South Africa","ZA"],["South Korea","KR"],["Spain","ES"],
+["Sri Lanka","LK"],["Sweden","SE"],["Switzerland","CH"],["Taiwan","TW"],["Tanzania","TZ"],
+["Thailand","TH"],["Tunisia","TN"],["Turkey","TR"],["Uganda","UG"],["Ukraine","UA"],
+["United Arab Emirates","AE"],["United Kingdom","GB"],["United States","US"],["Uruguay","UY"],
+["Uzbekistan","UZ"],["Venezuela","VE"],["Vietnam","VN"],["Zambia","ZM"],["Zimbabwe","ZW"]
+];
+function populateCountries() {
+  const sel = document.getElementById("fCountry");
+  sel.innerHTML = `<option value="">Select a country…</option>` +
+    COUNTRIES.map(([name, code]) => `<option value="${code}">${name}</option>`).join("");
+  const inDefault = COUNTRIES.find(c => c[0] === "India");
+  if (inDefault) sel.value = inDefault[1];
+}
+
+/* ============================================================
+   Generic typeahead user search (used by manager pickers)
+   ============================================================ */
+function wireUserSearch({ inputId, suggestId, pickedId, onPick }) {
+  const input = document.getElementById(inputId);
+  const suggestBox = document.getElementById(suggestId);
+  const pickedBox = document.getElementById(pickedId);
+  let debounceTimer = null;
+
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const q = input.value.trim();
+    if (q.length < 2) { suggestBox.classList.add("hidden"); return; }
+    debounceTimer = setTimeout(async () => {
+      try {
+        const safe = q.replace(/'/g, "''");
+        const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,jobTitle&$top=8`);
+        const results = data.value || [];
+        if (results.length === 0) { suggestBox.classList.add("hidden"); return; }
+        suggestBox.innerHTML = results.map(u => `
+          <div class="suggest-item" data-id="${u.id}" data-name="${escapeHtml(u.displayName || "")}" data-mail="${escapeHtml(u.mail || "")}">
+            <div>${escapeHtml(u.displayName || "")}</div>
+            <div class="sub">${escapeHtml(u.mail || "")}${u.jobTitle ? " · " + escapeHtml(u.jobTitle) : ""}</div>
+          </div>`).join("");
+        suggestBox.classList.remove("hidden");
+        [...suggestBox.querySelectorAll(".suggest-item")].forEach(el => {
+          el.addEventListener("click", () => {
+            const picked = { id: el.dataset.id, displayName: el.dataset.name, mail: el.dataset.mail };
+            pickedBox.innerHTML = `<span class="picked-chip">${escapeHtml(picked.displayName)} <button type="button">✕</button></span>`;
+            pickedBox.classList.remove("hidden");
+            pickedBox.querySelector("button").addEventListener("click", () => {
+              pickedBox.classList.add("hidden");
+              pickedBox.innerHTML = "";
+              onPick(null);
+            });
+            input.value = "";
+            suggestBox.classList.add("hidden");
+            onPick(picked);
+          });
+        });
+      } catch (e) {
+        console.warn("user search failed:", e.message);
+      }
+    }, 300);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden");
+  });
+}
+
+let selectedManager = null;
+wireUserSearch({
+  inputId: "fManagerSearch", suggestId: "managerSuggest", pickedId: "managerPicked",
+  onPick: (u) => selectedManager = u
+});
+
+let offSelectedManager = null;
+wireUserSearch({
+  inputId: "offManagerSearch", suggestId: "offManagerSuggest", pickedId: "offManagerPicked",
+  onPick: (u) => offSelectedManager = u
+});
+
+/* ============================================================
+   Group ID resolution (cached)
+   ============================================================ */
+async function getGroupIdByName(name) {
+  if (groupIdCache[name]) return groupIdCache[name];
+  const safe = name.replace(/'/g, "''");
+  const data = await graph(`/groups?$filter=displayName eq '${safe}'&$select=id,displayName`);
+  const group = (data.value || [])[0];
+  if (!group) throw new Error(`Group "${name}" was not found in the directory.`);
+  groupIdCache[name] = group.id;
+  return group.id;
+}
+
+/* ============================================================
+   Status log helpers
+   ============================================================ */
+function logStep(containerId, text, state) {
+  const container = document.getElementById(containerId);
+  const line = document.createElement("div");
+  line.className = "status-line " + state;
+  const icon = state === "ok" ? "✓" : state === "err" ? "✕" : "…";
+  line.innerHTML = `<span class="icon">${icon}</span><span>${escapeHtml(text)}</span>`;
+  container.appendChild(line);
+  return line;
+}
+function clearLog(containerId) { document.getElementById(containerId).innerHTML = ""; }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+/* ============================================================
+   ONBOARD — create user
+   ============================================================ */
+document.getElementById("createUserBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("onboardError");
+  errBox.classList.add("hidden");
+  clearLog("onboardStatus");
+  document.getElementById("onboardResult").innerHTML = "";
+
+  const first = document.getElementById("fFirst").value.trim();
+  const last = document.getElementById("fLast").value.trim();
+  const display = document.getElementById("fDisplay").value.trim();
+  const email = document.getElementById("fEmail").value.trim();
+  const password = document.getElementById("fPassword").value;
+  const forceChange = document.getElementById("fForceChange").checked;
+  const dept = document.getElementById("fDept").value.trim();
+  const title = document.getElementById("fTitle").value.trim();
+  const empId = document.getElementById("fEmpId").value.trim();
+  const phone = document.getElementById("fPhone").value.trim();
+  const country = document.getElementById("fCountry").value;
+  const claudeTier = document.querySelector('input[name="claudeTier"]:checked').value;
+  const wantsZoho = document.getElementById("fZoho").checked;
+
+  if (!first || !last) { showError("onboardError", "First and last name are required."); return; }
+  if (!email) { showError("onboardError", "Email address is required."); return; }
+  if (!password) { showError("onboardError", "Generate a password before creating the user."); return; }
+
+  const btn = document.getElementById("createUserBtn");
+  btn.disabled = true;
+
+  try {
+    const mailNickname = email.split("@")[0];
+    const step1 = logStep("onboardStatus", "Creating user account…", "pending");
+    const newUser = await graph("/users", {
+      method: "POST",
+      body: JSON.stringify({
+        accountEnabled: true,
+        displayName: display || `${first} ${last}`,
+        givenName: first,
+        surname: last,
+        mailNickname,
+        userPrincipalName: email,
+        department: dept || undefined,
+        jobTitle: title || undefined,
+        employeeId: empId || undefined,
+        mobilePhone: phone || undefined,
+        usageLocation: country || undefined,
+        passwordProfile: {
+          password,
+          forceChangePasswordNextSignIn: forceChange
+        }
+      })
+    });
+    step1.className = "status-line ok";
+    step1.querySelector(".icon").textContent = "✓";
+
+    if (selectedManager) {
+      const step2 = logStep("onboardStatus", `Setting manager to ${selectedManager.displayName}…`, "pending");
+      try {
+        await graph(`/users/${newUser.id}/manager/$ref`, {
+          method: "PUT",
+          body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/users/${selectedManager.id}` })
+        });
+        step2.className = "status-line ok"; step2.querySelector(".icon").textContent = "✓";
+      } catch (e) {
+        step2.className = "status-line err"; step2.querySelector(".icon").textContent = "✕";
+        step2.querySelector("span:last-child").textContent += " — " + e.message;
+      }
+    }
+
+    const groupsAdded = [];
+    const groupTargets = [];
+    if (claudeTier === "standard") groupTargets.push(CONFIG.groups.standard);
+    if (claudeTier === "premium") groupTargets.push(CONFIG.groups.premium);
+    if (wantsZoho) groupTargets.push(CONFIG.groups.zoho);
+
+    for (const groupName of groupTargets) {
+      const step = logStep("onboardStatus", `Adding to "${groupName}"…`, "pending");
+      try {
+        const groupId = await getGroupIdByName(groupName);
+        await graph(`/groups/${groupId}/members/$ref`, {
+          method: "POST",
+          body: JSON.stringify({ "@odata.id": `https://graph.microsoft.com/v1.0/directoryObjects/${newUser.id}` })
+        });
+        step.className = "status-line ok"; step.querySelector(".icon").textContent = "✓";
+        groupsAdded.push(groupName);
+      } catch (e) {
+        step.className = "status-line err"; step.querySelector(".icon").textContent = "✕";
+        step.querySelector("span:last-child").textContent += " — " + e.message;
+      }
+    }
+
+    document.getElementById("onboardResult").innerHTML = `
+      <div class="result-panel">
+        <div><span class="k">User created</span> ${escapeHtml(display)}</div>
+        <div><span class="k">UPN</span> ${escapeHtml(email)}</div>
+        <div><span class="k">Temp password</span> <span class="mono">${escapeHtml(password)}</span></div>
+        <div><span class="k">Groups added</span> ${groupsAdded.length ? escapeHtml(groupsAdded.join(", ")) : "None"}</div>
+      </div>`;
+  } catch (e) {
+    showError("onboardError", "Could not create user: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function showError(id, msg) {
+  const box = document.getElementById(id);
+  box.textContent = msg;
+  box.classList.remove("hidden");
+}
+
+/* ============================================================
+   OFFBOARD — find user
+   ============================================================ */
+let offUser = null;
+
+wireUserSearch({
+  inputId: "offSearch", suggestId: "offSuggest", pickedId: "__offNone__unused",
+  onPick: () => {}
+});
+// Override: offboard search needs full user object + status, not just id/name/mail.
+// Replace the generic handler with a dedicated one below.
+(function setupOffSearch() {
+  const input = document.getElementById("offSearch");
+  const suggestBox = document.getElementById("offSuggest");
+  let timer = null;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { suggestBox.classList.add("hidden"); return; }
+    timer = setTimeout(async () => {
+      try {
+        const safe = q.replace(/'/g, "''");
+        const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,department,jobTitle,accountEnabled&$top=8`);
+        const results = data.value || [];
+        if (results.length === 0) { suggestBox.classList.add("hidden"); return; }
+        suggestBox.innerHTML = results.map((u,i) => `
+          <div class="suggest-item" data-idx="${i}">
+            <div>${escapeHtml(u.displayName || "")}</div>
+            <div class="sub">${escapeHtml(u.mail || "")}${u.department ? " · " + escapeHtml(u.department) : ""}</div>
+          </div>`).join("");
+        suggestBox.classList.remove("hidden");
+        [...suggestBox.querySelectorAll(".suggest-item")].forEach(el => {
+          el.addEventListener("click", () => {
+            offUser = results[+el.dataset.idx];
+            renderOffSelected();
+            suggestBox.classList.add("hidden");
+            input.value = "";
+          });
+        });
+      } catch (e) { console.warn(e.message); }
+    }, 300);
+  });
+  document.addEventListener("click", (e) => {
+    if (!input.contains(e.target) && !suggestBox.contains(e.target)) suggestBox.classList.add("hidden");
+  });
+})();
+
+function renderOffSelected() {
+  document.getElementById("offSelected").classList.remove("hidden");
+  document.getElementById("offActionsCard").classList.remove("hidden");
+  document.getElementById("offName").textContent = offUser.displayName || "";
+  document.getElementById("offMeta").textContent = [offUser.mail, offUser.department, offUser.jobTitle].filter(Boolean).join(" · ");
+  const badge = document.getElementById("offBadge");
+  badge.textContent = offUser.accountEnabled ? "Enabled" : "Disabled";
+  badge.className = "badge " + (offUser.accountEnabled ? "enabled" : "disabled");
+  clearLog("offboardStatus");
+  document.getElementById("psSection").classList.add("hidden");
+}
+
+/* ============================================================
+   OFFBOARD — run actions
+   ============================================================ */
+document.getElementById("runOffboardBtn").addEventListener("click", async () => {
+  if (!offUser) return;
+  const errBox = document.getElementById("offboardError");
+  errBox.classList.add("hidden");
+  clearLog("offboardStatus");
+
+  const doDisable = document.getElementById("actDisable").checked;
+  const doGroups = document.getElementById("actGroups").checked;
+  const doReset = document.getElementById("actReset").checked;
+  const doOnedrive = document.getElementById("actOnedrive").checked;
+  const doShared = document.getElementById("actShared").checked;
+  const doHide = document.getElementById("actHide").checked;
+  const doForward = document.getElementById("actForward").checked;
+
+  const btn = document.getElementById("runOffboardBtn");
+  btn.disabled = true;
+
+  try {
+    if (doDisable) {
+      const s = logStep("offboardStatus", "Disabling account…", "pending");
+      try {
+        await graph(`/users/${offUser.id}`, { method: "PATCH", body: JSON.stringify({ accountEnabled: false }) });
+        await graph(`/users/${offUser.id}/revokeSignInSessions`, { method: "POST" });
+        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+      } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
+    }
+
+    if (doGroups) {
+      const s = logStep("offboardStatus", "Removing group memberships & licenses…", "pending");
+      try {
+        const memberOf = await graph(`/users/${offUser.id}/memberOf?$select=id,displayName`);
+        for (const g of (memberOf.value || [])) {
+          try {
+            await graph(`/groups/${g.id}/members/${offUser.id}/$ref`, { method: "DELETE" });
+          } catch (inner) {
+            // likely a dynamic-membership group — cannot be removed manually, skip
+          }
+        }
+        const userLic = await graph(`/users/${offUser.id}?$select=assignedLicenses`);
+        const skuIds = (userLic.assignedLicenses || []).map(l => l.skuId);
+        if (skuIds.length > 0) {
+          await graph(`/users/${offUser.id}/assignLicense`, {
+            method: "POST",
+            body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds })
+          });
+        }
+        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+      } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
+    }
+
+    if (doReset) {
+      const s = logStep("offboardStatus", "Resetting password…", "pending");
+      try {
+        const newPw = generatePassword();
+        await graph(`/users/${offUser.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ passwordProfile: { password: newPw, forceChangePasswordNextSignIn: true } })
+        });
+        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+        s.querySelector("span:last-child").textContent += ` — new password: ${newPw}`;
+      } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
+    }
+
+    if (doOnedrive) {
+      const s = logStep("offboardStatus", "Granting manager access to OneDrive…", "pending");
+      if (!offSelectedManager) {
+        s.className = "status-line err"; s.querySelector(".icon").textContent = "✕";
+        s.querySelector("span:last-child").textContent += " — no manager selected, skipped";
+      } else {
+        try {
+          const drive = await graph(`/users/${offUser.id}/drive`);
+          await graph(`/drives/${drive.id}/items/root/invite`, {
+            method: "POST",
+            body: JSON.stringify({
+              requireSignIn: true,
+              sendInvitation: false,
+              roles: ["read"],
+              recipients: [{ email: offSelectedManager.mail }]
+            })
+          });
+          s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+        } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
+      }
+    }
+
+    if (doShared || doHide || doForward) {
+      const upn = offUser.mail || "";
+      const mgrMail = offSelectedManager ? offSelectedManager.mail : "MANAGER_EMAIL_HERE";
+      const lines = ["# Connect-ExchangeOnline first, then run:"];
+      if (doShared) lines.push(`Set-Mailbox -Identity "${upn}" -Type Shared`);
+      if (doHide) lines.push(`Set-Mailbox -Identity "${upn}" -HiddenFromAddressListsEnabled $true`);
+      if (doForward) lines.push(`Set-Mailbox -Identity "${upn}" -ForwardingSmtpAddress "${mgrMail}" -DeliverToMailboxAndForward $false`);
+      document.getElementById("psBox").value = lines.join("\n");
+      document.getElementById("psSection").classList.remove("hidden");
+    }
+  } catch (e) {
+    showError("offboardError", "Offboarding hit an error: " + e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("copyPsBtn").addEventListener("click", () => {
+  navigator.clipboard.writeText(document.getElementById("psBox").value);
+});
+</script>
+</body>
+</html>
