@@ -343,14 +343,12 @@ textarea.ps-box{
           <h2>Role &amp; Organization</h2>
           <div class="grid">
             <div class="field">
-              <label>Department <span class="hint">type or pick</span></label>
-              <input type="text" id="fDept" list="deptList" placeholder="Type or choose…" />
-              <datalist id="deptList"></datalist>
+              <label>Department</label>
+              <select id="fDept"><option value="">Loading…</option></select>
             </div>
             <div class="field">
-              <label>Designation / Job title <span class="hint">type or pick</span></label>
-              <input type="text" id="fTitle" list="titleList" placeholder="Type or choose…" />
-              <datalist id="titleList"></datalist>
+              <label>Designation / Job title</label>
+              <select id="fTitle"><option value="">Loading…</option></select>
             </div>
             <div class="field"><label>Employee ID</label><input type="text" id="fEmpId" placeholder="e.g. EMP-0042" /></div>
             <div class="field"><label>Phone number</label><input type="tel" id="fPhone" placeholder="+91 98765 43210" /></div>
@@ -576,13 +574,18 @@ function switchTab(tab) {
 
 /* ── DIRECTORY HINTS ── */
 async function loadDirectoryHints() {
+  const deptSel = document.getElementById("fDept"), titleSel = document.getElementById("fTitle");
   try {
     const data = await graph("/users?$select=department,jobTitle&$top=999");
     const depts = new Set(), titles = new Set();
     (data.value || []).forEach(u => { if (u.department) depts.add(u.department); if (u.jobTitle) titles.add(u.jobTitle); });
-    document.getElementById("deptList").innerHTML = [...depts].sort().map(d => `<option value="${esc(d)}">`).join("");
-    document.getElementById("titleList").innerHTML = [...titles].sort().map(t => `<option value="${esc(t)}">`).join("");
-  } catch (e) { console.warn("hints:", e.message); }
+    deptSel.innerHTML = `<option value="">Select department…</option>` + [...depts].sort().map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+    titleSel.innerHTML = `<option value="">Select designation…</option>` + [...titles].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+  } catch (e) {
+    console.warn("hints:", e.message);
+    deptSel.innerHTML = `<option value="">Could not load — leave blank</option>`;
+    titleSel.innerHTML = `<option value="">Could not load — leave blank</option>`;
+  }
 }
 
 /* ── VERIFIED DOMAINS ── */
