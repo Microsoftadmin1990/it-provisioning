@@ -9,22 +9,22 @@
 <script src="./msal-browser.min.js"></script>
 <style>
 :root{
-  --bg:#0F1117;
-  --bg2:#161921;
-  --panel:#1C1F2B;
-  --panel-hover:#222638;
-  --ink:#E8EAF0;
-  --ink-soft:#8B92A5;
-  --line:#2A2E3E;
-  --accent:#6C7EFF;
-  --accent-glow:rgba(108,126,255,.15);
-  --accent-bright:#8B9AFF;
-  --danger:#F25F5C;
-  --danger-soft:rgba(242,95,92,.12);
-  --ok:#3DD68C;
-  --ok-soft:rgba(61,214,140,.12);
-  --warn:#FFB545;
-  --warn-soft:rgba(255,181,69,.12);
+  --bg:#F4F5F7;
+  --bg2:#FFFFFF;
+  --panel:#FFFFFF;
+  --panel-hover:#F0F1F4;
+  --ink:#1A1D26;
+  --ink-soft:#6B7280;
+  --line:#E2E5EB;
+  --accent:#4F63D2;
+  --accent-glow:rgba(79,99,210,.1);
+  --accent-bright:#4F63D2;
+  --danger:#DC4440;
+  --danger-soft:rgba(220,68,64,.08);
+  --ok:#0D9268;
+  --ok-soft:rgba(13,146,104,.08);
+  --warn:#C8850A;
+  --warn-soft:rgba(200,133,10,.08);
   --radius:8px;
   --radius-lg:14px;
 }
@@ -121,13 +121,13 @@ h1{font-size:22px;font-weight:700;letter-spacing:-.02em;}
 
 button.primary{
   all:unset;cursor:pointer;
-  background:linear-gradient(135deg,#6C7EFF 0%,#8B9AFF 100%);color:#fff;
+  background:linear-gradient(135deg,#4F63D2 0%,#6B7EE8 100%);color:#fff;
   padding:11px 22px;border-radius:var(--radius);
   font-size:14px;font-weight:600;
-  box-shadow:0 2px 12px rgba(108,126,255,.3);
+  box-shadow:0 2px 8px rgba(79,99,210,.25);
   transition:all .15s;
 }
-button.primary:hover{filter:brightness(1.1);box-shadow:0 4px 20px rgba(108,126,255,.4);}
+button.primary:hover{filter:brightness(1.06);box-shadow:0 4px 16px rgba(79,99,210,.35);}
 button.primary:disabled{opacity:.4;cursor:not-allowed;filter:none;}
 
 button.secondary{
@@ -156,7 +156,7 @@ button.danger:disabled{opacity:.4;cursor:not-allowed;}
   padding:24px;margin-bottom:20px;
   transition:border-color .2s;
 }
-.card:hover{border-color:#3A3F52;}
+.card:hover{border-color:#CDD0D8;}
 .card h2{
   font-size:13px;font-weight:700;text-transform:uppercase;
   letter-spacing:.06em;color:var(--ink-soft);margin-bottom:18px;
@@ -169,15 +169,15 @@ label .hint{font-weight:400;color:#6B7180;margin-left:4px;}
 input[type=text],input[type=tel],input[type=email],select{
   font-family:inherit;font-size:14px;padding:10px 12px;
   border:1px solid var(--line);border-radius:var(--radius);
-  background:var(--bg);color:var(--ink);transition:all .15s;
+  background:#FFFFFF;color:var(--ink);transition:all .15s;
 }
 input:focus,select:focus{
   outline:none;border-color:var(--accent);
   box-shadow:0 0 0 3px var(--accent-glow);
 }
-input::placeholder{color:#4A5068;}
+input::placeholder{color:#9CA3AF;}
 select{cursor:pointer;}
-select option{background:var(--panel);color:var(--ink);}
+select option{background:#fff;color:var(--ink);}
 .mono{font-family:'IBM Plex Mono',monospace;font-size:13px;}
 
 .radio-row,.check-row{display:flex;gap:18px;flex-wrap:wrap;}
@@ -193,8 +193,8 @@ input[type=checkbox],input[type=radio]{
 .manager-wrap{position:relative;}
 .suggest{
   position:absolute;top:calc(100%+4px);left:0;right:0;z-index:10;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-  box-shadow:0 12px 32px rgba(0,0,0,.4);max-height:240px;overflow-y:auto;
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:0 12px 32px rgba(0,0,0,.1);max-height:240px;overflow-y:auto;
 }
 .suggest-item{padding:10px 14px;cursor:pointer;font-size:13.5px;transition:background .1s;}
 .suggest-item:hover{background:var(--accent-glow);}
@@ -235,7 +235,7 @@ input[type=checkbox],input[type=radio]{
 
 textarea.ps-box{
   width:100%;min-height:140px;font-family:'IBM Plex Mono',monospace;
-  font-size:12.5px;background:var(--bg);color:var(--ink);
+  font-size:12.5px;background:#1E2028;color:#D9DEE8;
   border:1px solid var(--line);border-radius:var(--radius);
   padding:16px;line-height:1.7;resize:vertical;
 }
@@ -244,7 +244,7 @@ textarea.ps-box{
 /* ── OFFBOARD SELECTED USER ── */
 .selected-user{
   display:flex;justify-content:space-between;align-items:center;
-  padding:14px 16px;background:var(--bg);border:1px solid var(--line);
+  padding:14px 16px;background:#F7F8FA;border:1px solid var(--line);
   border-radius:var(--radius);margin-bottom:16px;
 }
 .selected-user .name{font-weight:600;font-size:14px;}
@@ -374,7 +374,7 @@ textarea.ps-box{
             <div class="field full">
               <label>Temporary password</label>
               <div class="pw-row">
-                <input type="text" id="fPassword" class="mono" readonly placeholder="Click Generate →" />
+                <input type="text" id="fPassword" class="mono" placeholder="Click Generate or type manually" />
                 <button class="secondary" id="genPwBtn" type="button">Generate</button>
                 <button class="secondary" id="copyPwBtn" type="button">Copy</button>
               </div>
@@ -654,7 +654,7 @@ async function loadLicenses() {
       const rem = s.total - s.used, out = rem <= 0;
       return `<div class="check-opt">
         <input type="checkbox" class="license-cb" value="${s.skuId}" ${out ? "disabled" : ""} />
-        <label style="font-weight:400;${out ? "color:#4A5068;" : ""}">${esc(s.name)} <span class="hint">(${rem} of ${s.total} available)</span></label>
+        <label style="font-weight:400;${out ? "color:#B0B5C0;" : ""}">${esc(s.name)} <span class="hint">(${rem} of ${s.total} available)</span></label>
       </div>`;
     }).join("");
   } catch (e) { box.innerHTML = `<div style="color:var(--danger);">${esc(e.message)}</div>`; }
@@ -850,7 +850,7 @@ let offUser = null;
     timer = setTimeout(async () => {
       try {
         const safe = q.replace(/'/g, "''");
-        const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,department,jobTitle,accountEnabled&$count=true&$top=8`, {}, true);
+        const data = await graph(`/users?$filter=startswith(displayName,'${safe}') or startswith(mail,'${safe}')&$select=id,displayName,mail,userPrincipalName,department,jobTitle,accountEnabled&$count=true&$top=8`, {}, true);
         const results = data.value || [];
         if (!results.length) { suggestBox.classList.add("hidden"); return; }
         suggestBox.innerHTML = results.map((u, i) => `<div class="suggest-item" data-idx="${i}"><div>${esc(u.displayName || "")}</div><div class="sub">${esc(u.mail || "")}${u.department ? " · " + esc(u.department) : ""}</div></div>`).join("");
@@ -935,12 +935,13 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
     }
 
     if (doShared || doHide || doForward) {
-      const upn = offUser.mail || "";
-      const mgrMail = offSelectedManager ? offSelectedManager.mail : "MANAGER_EMAIL_HERE";
+      const upn = offUser.mail || offUser.userPrincipalName || "";
+      const mgrMail = offSelectedManager ? (offSelectedManager.mail || "") : "";
       const lines = ["# Connect-ExchangeOnline first, then run:\n"];
       if (doShared) lines.push(`Set-Mailbox -Identity "${upn}" -Type Shared`);
       if (doHide) lines.push(`Set-Mailbox -Identity "${upn}" -HiddenFromAddressListsEnabled $true`);
-      if (doForward) lines.push(`Set-Mailbox -Identity "${upn}" -ForwardingSmtpAddress "${mgrMail}" -DeliverToMailboxAndForward $false`);
+      if (doForward && mgrMail) lines.push(`Set-Mailbox -Identity "${upn}" -ForwardingSmtpAddress "${mgrMail}" -DeliverToMailboxAndForward $false`);
+      if (doForward && !mgrMail) lines.push(`# ⚠ No manager selected — fill in manually:\n# Set-Mailbox -Identity "${upn}" -ForwardingSmtpAddress "MANAGER@DOMAIN" -DeliverToMailboxAndForward $false`);
       document.getElementById("psBox").value = lines.join("\n");
       document.getElementById("psSection").classList.remove("hidden");
     }
