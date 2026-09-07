@@ -456,7 +456,6 @@ textarea.ps-box{
           <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px;">
             <div class="check-opt"><input type="checkbox" id="actDisable" checked /><label for="actDisable" style="font-weight:500;">Disable account + revoke sign-in sessions</label></div>
             <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships &amp; licenses</label></div>
-            <div class="check-opt"><input type="checkbox" id="actReset" checked /><label for="actReset" style="font-weight:500;">Reset password (random)</label></div>
             <div class="check-opt"><input type="checkbox" id="actShared" checked /><label for="actShared" style="font-weight:500;">Convert mailbox to shared <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actHide" checked /><label for="actHide" style="font-weight:500;">Hide from Global Address List <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actForward" checked /><label for="actForward" style="font-weight:500;">Forward mail to manager <span class="hint">(PowerShell)</span></label></div>
@@ -870,6 +869,23 @@ function renderOffSelected() {
   badge.textContent = offUser.accountEnabled ? "Enabled" : "Disabled";
   badge.className = "badge " + (offUser.accountEnabled ? "enabled" : "disabled");
   clearLog("offboardStatus"); document.getElementById("psSection").classList.add("hidden");
+
+  // Auto-populate current manager
+  offSelectedManager = null;
+  const pickedBox = document.getElementById("offManagerPicked");
+  pickedBox.classList.add("hidden"); pickedBox.innerHTML = "";
+  document.getElementById("offManagerSearch").placeholder = "Looking up current manager…";
+  graph(`/users/${offUser.id}/manager?$select=id,displayName,mail`)
+    .then(mgr => {
+      document.getElementById("offManagerSearch").placeholder = "Search by name or email…";
+      if (mgr && mgr.id) {
+        offSelectedManager = { id: mgr.id, displayName: mgr.displayName, mail: mgr.mail };
+        pickedBox.innerHTML = `<span class="picked-chip">${esc(mgr.displayName)} <span class="hint">(current manager)</span> <button type="button">✕</button></span>`;
+        pickedBox.classList.remove("hidden");
+        pickedBox.querySelector("button").addEventListener("click", () => { pickedBox.classList.add("hidden"); pickedBox.innerHTML = ""; offSelectedManager = null; });
+      }
+    })
+    .catch(() => { document.getElementById("offManagerSearch").placeholder = "No manager on file — search by name or email…"; });
 }
 
 /* ── RUN OFFBOARDING ── */
@@ -880,7 +896,6 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
 
   const doDisable = document.getElementById("actDisable").checked;
   const doGroups = document.getElementById("actGroups").checked;
-  const doReset = document.getElementById("actReset").checked;
   const doShared = document.getElementById("actShared").checked;
   const doHide = document.getElementById("actHide").checked;
   const doForward = document.getElementById("actForward").checked;
@@ -905,16 +920,6 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
         const skuIds = (userLic.assignedLicenses || []).map(l => l.skuId);
         if (skuIds.length > 0) await graph(`/users/${offUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds }) });
         s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
-      } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
-    }
-
-    if (doReset) {
-      const s = logStep("offboardStatus", "Resetting password…", "pending");
-      try {
-        const newPw = generatePassword();
-        await graph(`/users/${offUser.id}`, { method: "PATCH", body: JSON.stringify({ passwordProfile: { password: newPw, forceChangePasswordNextSignIn: true } }) });
-        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
-        s.querySelector("span:last-child").textContent += ` — ${newPw}`;
       } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
     }
 
