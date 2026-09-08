@@ -462,7 +462,8 @@ textarea.ps-box{
           </div>
           <div style="margin-top:18px;display:flex;flex-direction:column;gap:10px;">
             <div class="check-opt"><input type="checkbox" id="actDisable" checked /><label for="actDisable" style="font-weight:500;">Disable account + revoke sign-in sessions</label></div>
-            <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships &amp; licenses</label></div>
+            <div class="check-opt"><input type="checkbox" id="actGroups" checked /><label for="actGroups" style="font-weight:500;">Remove all group memberships</label></div>
+            <div class="check-opt"><input type="checkbox" id="actLicenses" checked /><label for="actLicenses" style="font-weight:500;">Remove all licenses</label></div>
             <div class="check-opt"><input type="checkbox" id="actShared" checked /><label for="actShared" style="font-weight:500;">Convert mailbox to shared <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actHide" checked /><label for="actHide" style="font-weight:500;">Hide from Global Address List <span class="hint">(PowerShell)</span></label></div>
             <div class="check-opt"><input type="checkbox" id="actForward" checked /><label for="actForward" style="font-weight:500;">Forward mail to manager <span class="hint">(PowerShell)</span></label></div>
@@ -938,6 +939,7 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
 
   const doDisable = document.getElementById("actDisable").checked;
   const doGroups = document.getElementById("actGroups").checked;
+  const doLicenses = document.getElementById("actLicenses").checked;
   const doShared = document.getElementById("actShared").checked;
   const doHide = document.getElementById("actHide").checked;
   const doForward = document.getElementById("actForward").checked;
@@ -954,14 +956,36 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
     }
 
     if (doGroups) {
-      const s = logStep("offboardStatus", "Removing group memberships & licenses…", "pending");
+      const s = logStep("offboardStatus", "Removing group memberships…", "pending");
       try {
         const memberOf = await graph(`/users/${offUser.id}/memberOf?$select=id,displayName`);
         for (const g of (memberOf.value || [])) { try { await graph(`/groups/${g.id}/members/${offUser.id}/$ref`, { method: "DELETE" }); } catch {} }
+        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+      } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
+    }
+
+    if (doLicenses) {
+      const s = logStep("offboardStatus", "Removing all licenses…", "pending");
+      try {
         const userLic = await graph(`/users/${offUser.id}?$select=assignedLicenses`);
         const skuIds = (userLic.assignedLicenses || []).map(l => l.skuId);
-        if (skuIds.length > 0) await graph(`/users/${offUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds }) });
-        s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+        if (skuIds.length > 0) {
+          await graph(`/users/${offUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: [], removeLicenses: skuIds }) });
+        }
+        // Verify — some licenses (e.g. group-assigned) may need a second pass
+        const recheck = await graph(`/users/${offUser.id}?$select=assignedLicenses`);
+        const remaining = (recheck.assignedLicenses || []).map(l => l.skuId);
+        if (remaining.length > 0) {
+          await graph(`/users/${offUser.id}/assignLicense`, { method: "POST", body: JSON.stringify({ addLicenses: [], removeLicenses: remaining }) });
+        }
+        const finalCheck = await graph(`/users/${offUser.id}?$select=assignedLicenses`);
+        const stillLeft = (finalCheck.assignedLicenses || []).length;
+        if (stillLeft > 0) {
+          s.className = "status-line err"; s.querySelector(".icon").textContent = "✕";
+          s.querySelector("span:last-child").textContent += ` — ${stillLeft} license(s) still assigned (likely group-based; remove group membership first)`;
+        } else {
+          s.className = "status-line ok"; s.querySelector(".icon").textContent = "✓";
+        }
       } catch (e) { s.className = "status-line err"; s.querySelector(".icon").textContent = "✕"; s.querySelector("span:last-child").textContent += " — " + e.message; }
     }
 
