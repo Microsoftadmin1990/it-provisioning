@@ -255,6 +255,16 @@ textarea.ps-box{
 
 .hidden{display:none !important;}
 
+/* ── DEVICE LIST ── */
+.device-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 4px;border-bottom:1px solid var(--line);font-size:13.5px;
+}
+.device-row:last-child{border-bottom:none;}
+.device-row .serial{font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.device-row .desc{color:var(--ink-soft);font-size:12.5px;margin-top:2px;}
+.device-row .meta{text-align:right;font-size:11.5px;color:var(--ink-soft);}
+
 /* ── UPN ROW ── */
 .upn-row{display:flex;gap:4px;align-items:center;}
 .upn-row input{flex:2;}
@@ -291,6 +301,10 @@ textarea.ps-box{
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
         Offboard user
       </button>
+      <button id="navDevice">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        Add device
+      </button>
     </div>
     <div class="session hidden" id="sessionBox">
       <div class="who" id="whoAmI"></div>
@@ -309,6 +323,7 @@ textarea.ps-box{
         <div class="perm"><span class="dot"></span>Read & write all groups</div>
         <div class="perm"><span class="dot"></span>Read & write directory data</div>
         <div class="perm"><span class="dot"></span>Read organization & license info</div>
+        <div class="perm"><span class="dot"></span>Manage Intune corporate device identifiers</div>
       </div>
       <button class="primary" id="signInBtn" style="margin-top:8px;">Sign in with Microsoft</button>
       <p id="gateError" class="error-panel hidden" style="max-width:480px;"></p>
@@ -481,6 +496,43 @@ textarea.ps-box{
           </div>
         </div>
       </div>
+
+      <!-- ADD DEVICE -->
+      <div id="viewDevice" class="hidden">
+        <h1>Add device to Company</h1>
+        <p class="lede">Register a device's serial number as a corporate device identifier in Intune. Corporate devices are restricted from personal enrollment by default.</p>
+
+        <div class="card">
+          <h2>Device</h2>
+          <div class="grid">
+            <div class="field full">
+              <label>Serial number</label>
+              <input type="text" id="devSerial" placeholder="e.g. 10NTVL3" style="text-transform:uppercase;" />
+            </div>
+            <div class="field full">
+              <label>Description <span class="hint">optional</span></label>
+              <input type="text" id="devDescription" placeholder="e.g. Priya Sharma's laptop" />
+            </div>
+          </div>
+        </div>
+
+        <div class="actions-bar">
+          <button class="primary" id="addDeviceBtn">Add to Company</button>
+        </div>
+        <div id="deviceStatus" class="status-log"></div>
+        <div id="deviceResult"></div>
+        <div id="deviceError" class="error-panel hidden"></div>
+
+        <div class="card" style="margin-top:28px;">
+          <h2 style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Registered Devices</span>
+            <button class="secondary" id="refreshDevicesBtn" type="button" style="text-transform:none;letter-spacing:normal;font-weight:500;">Refresh</button>
+          </h2>
+          <div id="deviceListBox" style="display:flex;flex-direction:column;gap:0;">
+            <div style="color:var(--ink-soft);font-size:13.5px;">Loading…</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -506,7 +558,8 @@ const GRAPH_SCOPES = [
   "User.ReadWrite.All",
   "Group.ReadWrite.All",
   "Directory.ReadWrite.All",
-  "Organization.Read.All"
+  "Organization.Read.All",
+  "DeviceManagementServiceConfig.ReadWrite.All"
 ];
 
 if (CONFIG.deptMailboxRules && CONFIG.deptMailboxRules.length) {
@@ -535,11 +588,11 @@ async function getToken() {
   }
 }
 
-async function graph(path, options = {}, advanced = false) {
+async function graph(path, options = {}, advanced = false, base = "v1.0") {
   const token = await getToken();
   const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(options.headers || {}) };
   if (advanced) headers["ConsistencyLevel"] = "eventual";
-  const res = await fetch("https://graph.microsoft.com/v1.0" + path, { ...options, headers });
+  const res = await fetch("https://graph.microsoft.com/" + base + path, { ...options, headers });
   if (!res.ok) {
     let msg = res.status + " " + res.statusText;
     try { const b = await res.json(); if (b?.error?.message) msg = b.error.message; } catch {}
@@ -584,11 +637,14 @@ async function enterApp() {
 /* ── NAV ── */
 document.getElementById("navOnboard").addEventListener("click", () => switchTab("onboard"));
 document.getElementById("navOffboard").addEventListener("click", () => switchTab("offboard"));
+document.getElementById("navDevice").addEventListener("click", () => { switchTab("device"); loadDeviceList(); });
 function switchTab(tab) {
   document.getElementById("navOnboard").classList.toggle("active", tab === "onboard");
   document.getElementById("navOffboard").classList.toggle("active", tab === "offboard");
+  document.getElementById("navDevice").classList.toggle("active", tab === "device");
   document.getElementById("viewOnboard").classList.toggle("hidden", tab !== "onboard");
   document.getElementById("viewOffboard").classList.toggle("hidden", tab !== "offboard");
+  document.getElementById("viewDevice").classList.toggle("hidden", tab !== "device");
 }
 
 /* ── DIRECTORY HINTS ── */
@@ -1006,6 +1062,88 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
 
 document.getElementById("copyPsBtn").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("psBox").value));
 document.getElementById("copyOnboardPsBtn").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("onboardPsBox").value));
+
+/* ── ADD DEVICE TO COMPANY (Intune corporate device identifiers) ── */
+document.getElementById("addDeviceBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("deviceError");
+  errBox.classList.add("hidden"); clearLog("deviceStatus");
+  document.getElementById("deviceResult").innerHTML = "";
+
+  const serial = document.getElementById("devSerial").value.trim().toUpperCase();
+  const description = document.getElementById("devDescription").value.trim();
+
+  if (!serial) { showError("deviceError", "Serial number is required."); return; }
+
+  const btn = document.getElementById("addDeviceBtn"); btn.disabled = true;
+
+  try {
+    const s1 = logStep("deviceStatus", "Checking if this device is already registered…", "pending");
+    const searchRes = await graph("/deviceManagement/importedDeviceIdentities/searchExistingIdentities", {
+      method: "POST",
+      body: JSON.stringify({ importedDeviceIdentities: [{ importedDeviceIdentityType: "serialNumber", importedDeviceIdentifier: serial }] })
+    }, false, "beta");
+    const alreadyExists = (searchRes.value || []).length > 0;
+    s1.className = "status-line ok"; s1.querySelector(".icon").textContent = "✓";
+
+    if (alreadyExists) {
+      document.getElementById("deviceResult").innerHTML = `
+        <div class="result-panel" style="border-color:rgba(200,133,10,.3);background:var(--warn-soft);">
+          <div><span class="k">Serial number</span> ${esc(serial)}</div>
+          <div style="margin-top:6px;">This device is already registered as a corporate device identifier — nothing was added.</div>
+        </div>`;
+    } else {
+      const s2 = logStep("deviceStatus", "Adding device to Company…", "pending");
+      await graph("/deviceManagement/importedDeviceIdentities/importDeviceIdentityList", {
+        method: "POST",
+        body: JSON.stringify({
+          overwriteImportedDeviceIdentities: false,
+          importedDeviceIdentities: [{
+            importedDeviceIdentityType: "serialNumber",
+            importedDeviceIdentifier: serial,
+            description: description || undefined
+          }]
+        })
+      }, false, "beta");
+      s2.className = "status-line ok"; s2.querySelector(".icon").textContent = "✓";
+      document.getElementById("deviceResult").innerHTML = `
+        <div class="result-panel">
+          <div><span class="k">Serial number</span> ${esc(serial)}</div>
+          <div><span class="k">Description</span> ${esc(description || "—")}</div>
+          <div style="margin-top:6px;">Added as a corporate device identifier. It may take a few minutes to appear in the Intune portal.</div>
+        </div>`;
+    }
+    document.getElementById("devSerial").value = "";
+    document.getElementById("devDescription").value = "";
+    loadDeviceList();
+  } catch (e) {
+    showError("deviceError", "Could not add device: " + e.message);
+  } finally { btn.disabled = false; }
+});
+
+async function loadDeviceList() {
+  const box = document.getElementById("deviceListBox");
+  box.innerHTML = `<div style="color:var(--ink-soft);font-size:13.5px;">Loading…</div>`;
+  try {
+    const data = await graph("/deviceManagement/importedDeviceIdentities?$select=importedDeviceIdentifier,importedDeviceIdentityType,description,enrollmentState,platform,createdDateTime&$top=999", {}, false, "beta");
+    const devices = (data.value || []).filter(d => d.importedDeviceIdentityType === "serialNumber");
+    if (!devices.length) {
+      box.innerHTML = `<div style="color:var(--ink-soft);font-size:13.5px;">No corporate device identifiers registered yet.</div>`;
+      return;
+    }
+    devices.sort((a, b) => (b.createdDateTime || "").localeCompare(a.createdDateTime || ""));
+    box.innerHTML = devices.map(d => `
+      <div class="device-row">
+        <div>
+          <div class="serial">${esc(d.importedDeviceIdentifier)}</div>
+          ${d.description ? `<div class="desc">${esc(d.description)}</div>` : ""}
+        </div>
+        <div class="meta">${esc(d.enrollmentState || "unknown")}${d.platform && d.platform !== "unknown" ? " · " + esc(d.platform) : ""}</div>
+      </div>`).join("");
+  } catch (e) {
+    box.innerHTML = `<div style="color:var(--danger);font-size:13.5px;">${esc(e.message)}</div>`;
+  }
+}
+document.getElementById("refreshDevicesBtn").addEventListener("click", loadDeviceList);
 </script>
 </body>
 </html>
