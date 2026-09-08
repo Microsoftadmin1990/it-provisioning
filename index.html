@@ -345,6 +345,7 @@ textarea.ps-box{
             <div class="field">
               <label>Department</label>
               <select id="fDept"><option value="">Loading…</option></select>
+              <div id="deptDisclaimer" style="font-size:11.5px;color:var(--warn);margin-top:2px;"></div>
             </div>
             <div class="field">
               <label>Designation / Job title</label>
@@ -420,6 +421,14 @@ textarea.ps-box{
         <div id="onboardStatus" class="status-log"></div>
         <div id="onboardResult"></div>
         <div id="onboardError" class="error-panel hidden"></div>
+        <div id="onboardPsSection" class="hidden" style="margin-top:20px;">
+          <div class="card">
+            <h2>Exchange Online PowerShell</h2>
+            <p class="ps-note">This department requires mailbox permissions Graph can't grant directly. Run this in Exchange Online PowerShell (<code style="color:var(--accent);">Connect-ExchangeOnline</code> first).</p>
+            <textarea id="onboardPsBox" class="ps-box" readonly></textarea>
+            <div style="margin-top:10px;"><button class="secondary" id="copyOnboardPsBtn" type="button">Copy script</button></div>
+          </div>
+        </div>
       </div>
 
       <!-- OFFBOARD -->
@@ -485,7 +494,11 @@ const CONFIG = {
     standard: "Anthropic Access - Standard",
     premium: "Anthropic Access - Premium",
     zoho: "Zoho Access"
-  }
+  },
+  deptMailboxRules: [
+    { department: "Accounts", mailbox: "account@sukan.co", rights: ["FullAccess", "SendAs"] },
+    { department: "Inside Sales", mailbox: "info@sukan.co", rights: ["FullAccess", "SendAs"] }
+  ]
 };
 
 const GRAPH_SCOPES = [
@@ -494,6 +507,11 @@ const GRAPH_SCOPES = [
   "Directory.ReadWrite.All",
   "Organization.Read.All"
 ];
+
+if (CONFIG.deptMailboxRules && CONFIG.deptMailboxRules.length) {
+  const text = "⚠ " + CONFIG.deptMailboxRules.map(r => `${r.department} → auto-grants access to ${r.mailbox}`).join(" · ");
+  document.getElementById("deptDisclaimer").textContent = text;
+}
 
 const msalInstance = new msal.PublicClientApplication({
   auth: {
@@ -579,12 +597,20 @@ async function loadDirectoryHints() {
     const data = await graph("/users?$select=department,jobTitle&$top=999");
     const depts = new Set(), titles = new Set();
     (data.value || []).forEach(u => { if (u.department) depts.add(u.department); if (u.jobTitle) titles.add(u.jobTitle); });
-    deptSel.innerHTML = `<option value="">Select department…</option>` + [...depts].sort().map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
-    titleSel.innerHTML = `<option value="">Select designation…</option>` + [...titles].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+    if (depts.size === 0) {
+      deptSel.innerHTML = `<option value="">No departments found in directory</option>`;
+    } else {
+      deptSel.innerHTML = `<option value="">Select department…</option>` + [...depts].sort().map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+    }
+    if (titles.size === 0) {
+      titleSel.innerHTML = `<option value="">No job titles found in directory</option>`;
+    } else {
+      titleSel.innerHTML = `<option value="">Select designation…</option>` + [...titles].sort().map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join("");
+    }
   } catch (e) {
-    console.warn("hints:", e.message);
-    deptSel.innerHTML = `<option value="">Could not load — leave blank</option>`;
-    titleSel.innerHTML = `<option value="">Could not load — leave blank</option>`;
+    console.error("loadDirectoryHints failed:", e);
+    deptSel.innerHTML = `<option value="">Failed: ${esc(e.message)}</option>`;
+    titleSel.innerHTML = `<option value="">Failed: ${esc(e.message)}</option>`;
   }
 }
 
@@ -737,6 +763,7 @@ document.getElementById("resetFormBtn").addEventListener("click", () => {
   selectedManager = null; displayDirty = false; emailDirty = false;
   clearLog("onboardStatus"); document.getElementById("onboardResult").innerHTML = "";
   document.getElementById("onboardError").classList.add("hidden");
+  document.getElementById("onboardPsSection").classList.add("hidden");
 });
 
 /* ── CREATE USER ── */
@@ -832,6 +859,18 @@ document.getElementById("createUserBtn").addEventListener("click", async () => {
         <div><span class="k">Licenses</span> ${licensesAssigned.length ? esc(licensesAssigned.join(", ")) : "None"}</div>
         <div><span class="k">Groups</span> ${groupsAdded.length ? esc(groupsAdded.join(", ")) : "None"}</div>
       </div>`;
+
+    // Department-based mailbox permission rules (Exchange-only, needs PowerShell)
+    const matchedRule = CONFIG.deptMailboxRules.find(r => r.department.trim().toLowerCase() === dept.trim().toLowerCase());
+    if (matchedRule) {
+      const lines = ["# Connect-ExchangeOnline first, then run:\n"];
+      if (matchedRule.rights.includes("FullAccess")) lines.push(`Add-MailboxPermission -Identity "${matchedRule.mailbox}" -User "${email}" -AccessRights FullAccess -InheritanceType All -AutoMapping $true`);
+      if (matchedRule.rights.includes("SendAs")) lines.push(`Add-RecipientPermission -Identity "${matchedRule.mailbox}" -Trustee "${email}" -AccessRights SendAs -Confirm:$false`);
+      document.getElementById("onboardPsBox").value = lines.join("\n");
+      document.getElementById("onboardPsSection").classList.remove("hidden");
+    } else {
+      document.getElementById("onboardPsSection").classList.add("hidden");
+    }
   } catch (e) {
     showError("onboardError", "Could not create user: " + e.message);
   } finally { btn.disabled = false; }
@@ -942,6 +981,7 @@ document.getElementById("runOffboardBtn").addEventListener("click", async () => 
 });
 
 document.getElementById("copyPsBtn").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("psBox").value));
+document.getElementById("copyOnboardPsBtn").addEventListener("click", () => navigator.clipboard.writeText(document.getElementById("onboardPsBox").value));
 </script>
 </body>
 </html>
