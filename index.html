@@ -1124,7 +1124,7 @@ async function loadDeviceList() {
   const box = document.getElementById("deviceListBox");
   box.innerHTML = `<div style="color:var(--ink-soft);font-size:13.5px;">Loading…</div>`;
   try {
-    const data = await graph("/deviceManagement/importedDeviceIdentities?$select=importedDeviceIdentifier,importedDeviceIdentityType,description,enrollmentState,platform,createdDateTime&$top=999", {}, false, "beta");
+    const data = await graph("/deviceManagement/importedDeviceIdentities", {}, false, "beta");
     const devices = (data.value || []).filter(d => d.importedDeviceIdentityType === "serialNumber");
     if (!devices.length) {
       box.innerHTML = `<div style="color:var(--ink-soft);font-size:13.5px;">No corporate device identifiers registered yet.</div>`;
